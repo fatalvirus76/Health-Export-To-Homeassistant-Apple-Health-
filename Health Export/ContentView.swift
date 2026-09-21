@@ -501,6 +501,258 @@ enum AppStorageKey: String, Sendable {
     case lastExportTimestamp = "last_export_timestamp"
     case lastExportSuccess = "last_export_success"
     case lastExportCount = "last_export_count"
+    case theme = "app_theme"
+    case showLastValues = "show_last_values"
+}
+
+// MARK: - Themes
+
+/// Ett färgtema. Lägg till ett nytt tema genom att lägga en `case` här och
+/// fylla i `palette` – resten av appen läser bara paletten och behöver inte röras.
+enum AppTheme: String, CaseIterable, Identifiable {
+    case system
+    case glass
+    case dracula
+    case synthwave
+    case nord
+    case midnight
+    case sunset
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .system: return "System"
+        case .glass: return "Glas"
+        case .dracula: return "Dracula"
+        case .synthwave: return "Synthwave"
+        case .nord: return "Nord"
+        case .midnight: return "Midnatt"
+        case .sunset: return "Solnedgång"
+        }
+    }
+
+    var palette: ThemePalette {
+        switch self {
+        case .system:
+            return ThemePalette(
+                gradient: [
+                    Color(uiColor: .systemBackground),
+                    Color.accentColor.opacity(0.08),
+                    Color(uiColor: .secondarySystemBackground)
+                ],
+                heroGradient: [
+                    Color(red: 0.10, green: 0.27, blue: 0.95),
+                    Color(red: 0.56, green: 0.22, blue: 0.92),
+                    Color(red: 0.00, green: 0.72, blue: 0.86)
+                ],
+                heroShadow: Color.blue.opacity(0.22),
+                accent: .accentColor,
+                colorScheme: nil,
+                rowMaterial: .regularMaterial
+            )
+
+        case .glass:
+            return ThemePalette(
+                gradient: [
+                    Color(red: 0.06, green: 0.08, blue: 0.15),
+                    Color(red: 0.12, green: 0.16, blue: 0.28),
+                    Color(red: 0.04, green: 0.05, blue: 0.10)
+                ],
+                heroGradient: [
+                    Color(red: 0.30, green: 0.51, blue: 0.95),
+                    Color(red: 0.55, green: 0.36, blue: 0.92),
+                    Color(red: 0.36, green: 0.86, blue: 0.95)
+                ],
+                heroShadow: Color(red: 0.36, green: 0.60, blue: 1.00).opacity(0.35),
+                accent: Color(red: 0.62, green: 0.80, blue: 1.00),
+                colorScheme: .dark,
+                rowMaterial: .ultraThinMaterial
+            )
+
+        case .dracula:
+            return ThemePalette(
+                gradient: [
+                    Color(red: 0.16, green: 0.16, blue: 0.21),
+                    Color(red: 0.12, green: 0.12, blue: 0.16),
+                    Color(red: 0.09, green: 0.09, blue: 0.13)
+                ],
+                heroGradient: [
+                    Color(red: 0.74, green: 0.58, blue: 0.98),
+                    Color(red: 1.00, green: 0.47, blue: 0.78),
+                    Color(red: 0.55, green: 0.91, blue: 0.99)
+                ],
+                heroShadow: Color(red: 0.74, green: 0.58, blue: 0.98).opacity(0.30),
+                accent: Color(red: 0.74, green: 0.58, blue: 0.98),
+                colorScheme: .dark,
+                rowMaterial: .ultraThinMaterial
+            )
+
+        case .synthwave:
+            return ThemePalette(
+                gradient: [
+                    Color(red: 0.10, green: 0.04, blue: 0.18),
+                    Color(red: 0.18, green: 0.04, blue: 0.31),
+                    Color(red: 0.06, green: 0.04, blue: 0.10)
+                ],
+                heroGradient: [
+                    Color(red: 1.00, green: 0.18, blue: 0.59),
+                    Color(red: 0.48, green: 0.18, blue: 0.97),
+                    Color(red: 0.00, green: 0.85, blue: 1.00)
+                ],
+                heroShadow: Color(red: 1.00, green: 0.18, blue: 0.59).opacity(0.35),
+                accent: Color(red: 1.00, green: 0.18, blue: 0.59),
+                colorScheme: .dark,
+                rowMaterial: .ultraThinMaterial
+            )
+
+        case .nord:
+            return ThemePalette(
+                gradient: [
+                    Color(red: 0.18, green: 0.20, blue: 0.25),
+                    Color(red: 0.23, green: 0.26, blue: 0.32),
+                    Color(red: 0.14, green: 0.16, blue: 0.20)
+                ],
+                heroGradient: [
+                    Color(red: 0.37, green: 0.51, blue: 0.67),
+                    Color(red: 0.53, green: 0.75, blue: 0.82),
+                    Color(red: 0.64, green: 0.75, blue: 0.55)
+                ],
+                heroShadow: Color(red: 0.53, green: 0.75, blue: 0.82).opacity(0.28),
+                accent: Color(red: 0.53, green: 0.75, blue: 0.82),
+                colorScheme: .dark,
+                rowMaterial: .ultraThinMaterial
+            )
+
+        case .midnight:
+            return ThemePalette(
+                gradient: [
+                    Color(red: 0.04, green: 0.06, blue: 0.13),
+                    Color(red: 0.07, green: 0.11, blue: 0.20),
+                    Color(red: 0.03, green: 0.04, blue: 0.08)
+                ],
+                heroGradient: [
+                    Color(red: 0.23, green: 0.05, blue: 0.64),
+                    Color(red: 0.26, green: 0.38, blue: 0.93),
+                    Color(red: 0.30, green: 0.79, blue: 0.94)
+                ],
+                heroShadow: Color(red: 0.26, green: 0.38, blue: 0.93).opacity(0.30),
+                accent: Color(red: 0.30, green: 0.79, blue: 0.94),
+                colorScheme: .dark,
+                rowMaterial: .ultraThinMaterial
+            )
+
+        case .sunset:
+            return ThemePalette(
+                gradient: [
+                    Color(red: 0.15, green: 0.07, blue: 0.20),
+                    Color(red: 0.32, green: 0.10, blue: 0.26),
+                    Color(red: 0.08, green: 0.05, blue: 0.12)
+                ],
+                heroGradient: [
+                    Color(red: 1.00, green: 0.42, blue: 0.42),
+                    Color(red: 1.00, green: 0.72, blue: 0.01),
+                    Color(red: 1.00, green: 0.56, blue: 0.67)
+                ],
+                heroShadow: Color(red: 1.00, green: 0.55, blue: 0.40).opacity(0.30),
+                accent: Color(red: 1.00, green: 0.72, blue: 0.01),
+                colorScheme: .dark,
+                rowMaterial: .ultraThinMaterial
+            )
+        }
+    }
+}
+
+struct ThemePalette {
+    let gradient: [Color]
+    let heroGradient: [Color]
+    let heroShadow: Color
+    let accent: Color
+    /// nil = följ systemets ljusa/mörka läge.
+    let colorScheme: ColorScheme?
+    /// Material för radkorten – tätare i ljust läge så korten syns mot ljus bakgrund.
+    let rowMaterial: Material
+
+    var backgroundGradient: LinearGradient {
+        LinearGradient(colors: gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    var heroBackground: LinearGradient {
+        LinearGradient(colors: heroGradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+}
+
+/// Håller valt tema och persisterar det. Delad instans så att alla vyer
+/// (även ark/urvalslistan) byter utseende samtidigt.
+@MainActor
+final class ThemeManager: ObservableObject {
+    static let shared = ThemeManager()
+
+    @Published var theme: AppTheme {
+        didSet {
+            UserDefaults.standard.set(theme.rawValue, forKey: AppStorageKey.theme.rawValue)
+        }
+    }
+
+    private init() {
+        let stored = UserDefaults.standard.string(forKey: AppStorageKey.theme.rawValue) ?? ""
+        theme = AppTheme(rawValue: stored) ?? .system
+    }
+}
+
+/// Radbakgrund i listorna: glasmaterial + svag ton av temats accentfärg, så att
+/// temat syns i varje rad och inte bara i gradienten bakom.
+struct ThemeRowBackground: View {
+    let palette: ThemePalette
+
+    var body: some View {
+        ZStack {
+            Rectangle().fill(palette.rowMaterial)
+            Rectangle().fill(palette.accent.opacity(0.12))
+        }
+        .overlay {
+            Rectangle().strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5)
+        }
+    }
+}
+
+/// Färgprov i temaväljaren.
+private struct ThemeSwatch: View {
+    let theme: AppTheme
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(theme.palette.heroBackground)
+                        .frame(width: 52, height: 52)
+                        .overlay(Circle().stroke(.white.opacity(0.22), lineWidth: 1))
+
+                    if isSelected {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundStyle(.white)
+                            .shadow(radius: 2)
+                    }
+                }
+                .overlay {
+                    Circle()
+                        .stroke(isSelected ? theme.palette.accent : .clear, lineWidth: 3)
+                        .frame(width: 60, height: 60)
+                }
+
+                Text(theme.displayName)
+                    .font(.caption2.weight(isSelected ? .bold : .regular))
+                    .foregroundStyle(isSelected ? theme.palette.accent : Color.secondary)
+            }
+            .padding(.vertical, 2)
+        }
+        .buttonStyle(.plain)
+        .animation(.snappy(duration: 0.2), value: isSelected)
+    }
 }
 
 // MARK: - Background Task Handler (BGTaskScheduler)
@@ -625,6 +877,7 @@ private struct ModernHeroCard: View {
     let connectionStatus: String
     let exportedMetricsCount: Int
     let lastExportDate: Date?
+    let palette: ThemePalette
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -702,22 +955,12 @@ private struct ModernHeroCard: View {
         .padding(22)
         .background {
             RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.10, green: 0.27, blue: 0.95),
-                            Color(red: 0.56, green: 0.22, blue: 0.92),
-                            Color(red: 0.00, green: 0.72, blue: 0.86)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(palette.heroBackground)
                 .overlay {
                     RoundedRectangle(cornerRadius: 30, style: .continuous)
                         .stroke(.white.opacity(0.18), lineWidth: 1)
                 }
-                .shadow(color: Color.blue.opacity(0.22), radius: 22, x: 0, y: 14)
+                .shadow(color: palette.heroShadow, radius: 22, x: 0, y: 14)
         }
         .listRowInsets(EdgeInsets(top: 14, leading: 16, bottom: 12, trailing: 16))
         .listRowBackground(Color.clear)
@@ -764,11 +1007,12 @@ private struct ModernMetricRow: View {
     let subtitle: String
     let isEnabled: Bool
     var badge: String? = nil
+    var accent: Color = .accentColor
 
     var body: some View {
         HStack(spacing: 12) {
             Circle()
-                .fill(isEnabled ? Color.accentColor : Color.secondary.opacity(0.28))
+                .fill(isEnabled ? accent : Color.secondary.opacity(0.28))
                 .frame(width: 9, height: 9)
 
             VStack(alignment: .leading, spacing: 3) {
@@ -807,9 +1051,11 @@ struct ContentView: View {
     @AppStorage(AppStorageKey.lookbackDays.rawValue) private var lookbackDays: Int = 30
     @AppStorage(AppStorageKey.autoExport.rawValue) private var autoExport: Bool = false
     @AppStorage(AppStorageKey.enabledMetrics.rawValue) private var enabledMetricsData: Data = Data()
+    @AppStorage(AppStorageKey.showLastValues.rawValue) private var showLastValues: Bool = true
     
     // MARK: - State
     @StateObject private var healthManager = HealthManager.shared
+    @StateObject private var themeManager = ThemeManager.shared
     @State private var logFilter: LogFilter = .all
     
     // MARK: - Computed Properties
@@ -858,6 +1104,8 @@ struct ContentView: View {
     
     // MARK: - MODIFIED
     var body: some View {
+        let palette = themeManager.theme.palette
+
         NavigationStack {
             Form {
                 ModernHeroCard(
@@ -865,7 +1113,8 @@ struct ContentView: View {
                     isExporting: healthManager.isExporting,
                     connectionStatus: healthManager.connectionStatus,
                     exportedMetricsCount: healthManager.exportedMetricsCount,
-                    lastExportDate: healthManager.lastExportDate
+                    lastExportDate: healthManager.lastExportDate,
+                    palette: palette
                 )
 
                 configurationWarningsSection
@@ -873,12 +1122,13 @@ struct ContentView: View {
                 serverConfigurationSection
                 commonSettingsSection
                 automationSection
+                appearanceSection
                 
                 if let lastExport = healthManager.lastExportDate {
                     exportStatusSection(lastExport: lastExport)
                 }
 
-                if !healthManager.lastSentValues.isEmpty {
+                if showLastValues && !healthManager.lastSentValues.isEmpty {
                     recentValuesSection
                 }
                 
@@ -886,21 +1136,16 @@ struct ContentView: View {
                 logsSection
             }
             .scrollContentBackground(.hidden)
+            .listRowBackground(ThemeRowBackground(palette: palette))
             .background {
-                LinearGradient(
-                    colors: [
-                        Color(uiColor: .systemBackground),
-                        Color.accentColor.opacity(0.08),
-                        Color(uiColor: .secondarySystemBackground)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+                palette.backgroundGradient
+                    .ignoresSafeArea()
             }
             .navigationTitle("Health Export")
             .navigationBarTitleDisplayMode(.inline)
-            .tint(.accentColor)
+            .tint(palette.accent)
+            .preferredColorScheme(palette.colorScheme)
+            .animation(.easeInOut(duration: 0.25), value: themeManager.theme)
             .onAppear(perform: onAppear)
         }
     }
@@ -923,6 +1168,7 @@ struct ContentView: View {
                     .padding(.vertical, 4)
                 }
             }
+            .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
         }
     }
     
@@ -952,7 +1198,9 @@ struct ContentView: View {
             }
         } header: {
             Label("HealthKit", systemImage: "heart.text.square.fill")
+                .foregroundStyle(themeManager.theme.palette.accent)
         }
+        .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
     }
     
     @ViewBuilder
@@ -975,7 +1223,9 @@ struct ContentView: View {
             }
         } header: {
             Label("Server 1 (Primär)", systemImage: "server.rack")
+                .foregroundStyle(themeManager.theme.palette.accent)
         }
+        .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
         
         Section {
             HStack {
@@ -995,7 +1245,9 @@ struct ContentView: View {
             }
         } header: {
             Label("Server 2 (Valfri)", systemImage: "server.rack")
+                .foregroundStyle(themeManager.theme.palette.accent)
         }
+        .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
     }
     
     private var commonSettingsSection: some View {
@@ -1047,7 +1299,9 @@ struct ContentView: View {
             }
         } header: {
             Label("Gemensamma Inställningar", systemImage: "gearshape.fill")
+                .foregroundStyle(themeManager.theme.palette.accent)
         }
+        .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
     }
     
     private var automationSection: some View {
@@ -1072,7 +1326,36 @@ struct ContentView: View {
                 .padding(.top, 2)
         } header: {
             Label("Automation", systemImage: "bolt.fill")
+                .foregroundStyle(themeManager.theme.palette.accent)
         }
+        .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
+    }
+
+    private var appearanceSection: some View {
+        Section {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    ForEach(AppTheme.allCases) { theme in
+                        ThemeSwatch(theme: theme, isSelected: themeManager.theme == theme) {
+                            themeManager.theme = theme
+                        }
+                    }
+                }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 4)
+            }
+            .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
+
+            Toggle(isOn: $showLastValues) {
+                Label("Visa senaste exporterade värden", systemImage: "list.number")
+            }
+        } header: {
+            Label("Utseende", systemImage: "paintpalette.fill")
+                .foregroundStyle(themeManager.theme.palette.accent)
+        } footer: {
+            Text("Temat sparas och slår igenom direkt i hela appen.")
+        }
+        .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
     }
     
     private func exportStatusSection(lastExport: Date) -> some View {
@@ -1104,7 +1387,9 @@ struct ContentView: View {
             }
         } header: {
             Label("Export-status", systemImage: "chart.bar.doc.horizontal")
+                .foregroundStyle(themeManager.theme.palette.accent)
         }
+        .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
     }
     
     private var recentValuesSection: some View {
@@ -1118,7 +1403,7 @@ struct ContentView: View {
                     Spacer()
                     Text(String(format: "%.2f", value))
                         .font(.system(.subheadline, design: .monospaced, weight: .semibold))
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(themeManager.theme.palette.accent)
                 }
             }
 
@@ -1129,7 +1414,9 @@ struct ContentView: View {
             }
         } header: {
             Label("Senaste Exporterade Värden (\(values.count))", systemImage: "list.number")
+                .foregroundStyle(themeManager.theme.palette.accent)
         }
+        .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
     }
     
     private var exportActionsSection: some View {
@@ -1195,13 +1482,15 @@ struct ContentView: View {
             .disabled(healthManager.isExporting || !healthManager.hasValidConfiguration)
             .listRowBackground(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.accentColor.opacity(0.10))
+                    .fill(themeManager.theme.palette.accent.opacity(0.10))
             )
             .padding(.vertical, 4)
             
         } header: {
             Label("Manuell Körning", systemImage: "play.circle.fill")
+                .foregroundStyle(themeManager.theme.palette.accent)
         }
+        .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
     }
     
     private var logsSection: some View {
@@ -1243,6 +1532,7 @@ struct ContentView: View {
         } header: {
             HStack {
                 Label("Logg (\(filteredLogs.count))", systemImage: "terminal.fill")
+                    .foregroundStyle(themeManager.theme.palette.accent)
                 Spacer()
                 Menu {
                     Button(action: {
@@ -1263,6 +1553,7 @@ struct ContentView: View {
                 }
             }
         }
+        .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
     }
     
     // MARK: - Actions
@@ -1303,6 +1594,7 @@ struct MetricsSelectionView: View {
     
     @State private var searchText = ""
     @State private var localEnabledMetrics: Set<String>
+    @ObservedObject private var themeManager = ThemeManager.shared
     @Environment(\.dismiss) private var dismiss
     
     init(enabledMetrics: Set<String>, onUpdate: @escaping (Set<String>) -> Void) {
@@ -1335,21 +1627,16 @@ struct MetricsSelectionView: View {
             }
         }
         .scrollContentBackground(.hidden)
+        .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
         .background {
-            LinearGradient(
-                colors: [
-                    Color(uiColor: .systemBackground),
-                    Color.accentColor.opacity(0.06),
-                    Color(uiColor: .secondarySystemBackground)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            themeManager.theme.palette.backgroundGradient
+                .ignoresSafeArea()
         }
         .searchable(text: $searchText, prompt: "Sök datapunkter")
         .navigationTitle("Välj datapunkter")
         .navigationBarTitleDisplayMode(.inline)
+        .tint(themeManager.theme.palette.accent)
+        .preferredColorScheme(themeManager.theme.palette.colorScheme)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
@@ -1424,10 +1711,11 @@ struct MetricsSelectionView: View {
                 ModernMetricRow(
                     title: config.displayName,
                     subtitle: config.name,
-                    isEnabled: localEnabledMetrics.contains(config.name)
+                    isEnabled: localEnabledMetrics.contains(config.name),
+                    accent: themeManager.theme.palette.accent
                 )
             }
-            .tint(.accentColor)
+            .tint(themeManager.theme.palette.accent)
         } else {
             ModernMetricRow(
                 title: config.displayName,
