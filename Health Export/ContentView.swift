@@ -13,6 +13,55 @@ struct HealthDataConfig: Identifiable {
     let unit: HKUnit
     let isCumulative: Bool
     let category: HealthCategory
+    /// false = appen kan inte läsa värdet ur HealthKit (saknar källa i iOS,
+    /// kräver tredjepartsapp eller är en aggregering som saknar API).
+    let isAvailable: Bool
+
+    /// Datapunkter utan läsbar HealthKit-källa. De visas i urvalslistan men
+    /// kan inte aktiveras och exporteras aldrig (tidigare skickades 0 till HA).
+    static let unavailableMetricNames: Set<String> = [
+        "daily_quotes",
+        "goal_calories",
+        "goal_steps",
+        "distance_indoor",
+        "distance_treadmill",
+        "ambient_temp",
+        "air_pressure",
+        "hip_circumference",
+        "body_weight_trend",
+        "bmr",
+        "blood_pressure_avg",
+        "hrv_rmssd",
+        "oxygen_saturation_trend",
+        "wrist_temperature",
+        "balance_score",
+        "fall_risk",
+        "running_cadence",
+        "running_vertical_ratio",
+        "cardio_fitness",
+        "low_heart_rate_events",
+        "high_heart_rate_events",
+        "heart_arrhythmia",
+        "headphone_exposure",
+        "noise_exposure_level",
+        "hearing_health",
+        "mood",
+        "stress_level",
+        "energy_level",
+        "focus_time",
+        "meal_count",
+        "snack_count",
+        "insulin_sensitivity",
+        "time_in_range",
+        "menstrual_cycle",
+        "ovulation_date",
+        "menstrual_flow",
+        "sexual_activity",
+        "pregnancy",
+        "teeth_brushing",
+        "medication_reminder",
+        "sleep_schedule"
+    ]
 
     init(id: HKQuantityTypeIdentifier, name: String, displayName: String? = nil, unit: HKUnit, isCumulative: Bool, category: HealthCategory) {
         self.id = id
@@ -21,6 +70,7 @@ struct HealthDataConfig: Identifiable {
         self.unit = unit
         self.isCumulative = isCumulative
         self.category = category
+        self.isAvailable = !Self.unavailableMetricNames.contains(name)
     }
 }
 
@@ -294,7 +344,6 @@ final class HealthDataConfiguration: @unchecked Sendable {
         
         // MARK: - Habits
         types.append(contentsOf: [
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "mindful_minutes", displayName: "Mindfulness (minuter)", unit: .minute(), isCumulative: true, category: .habits),
             HealthDataConfig(id: .appleSleepingWristTemperature, name: "handwashing_count", displayName: "Handtvätt (antal)", unit: .count(), isCumulative: true, category: .habits),
             HealthDataConfig(id: .appleSleepingWristTemperature, name: "teeth_brushing", displayName: "Tandborstning", unit: .count(), isCumulative: true, category: .habits),
             HealthDataConfig(id: .appleSleepingWristTemperature, name: "medication_reminder", displayName: "Medicin-påminnelse", unit: .count(), isCumulative: true, category: .habits),
@@ -318,10 +367,15 @@ struct LogMessage: Identifiable, Equatable, Sendable {
     let message: String
     let isError: Bool
 
-    var fullString: String {
+    // En delad formatterare i stället för en ny per anrop/rad (loggen renderas ofta).
+    private static let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm:ss"
-        return "[\(formatter.string(from: time))] \(message)"
+        return formatter
+    }()
+
+    var fullString: String {
+        "[\(Self.timeFormatter.string(from: time))] \(message)"
     }
     
     static func == (lhs: LogMessage, rhs: LogMessage) -> Bool {
@@ -709,6 +763,7 @@ private struct ModernMetricRow: View {
     let title: String
     let subtitle: String
     let isEnabled: Bool
+    var badge: String? = nil
 
     var body: some View {
         HStack(spacing: 12) {
@@ -717,8 +772,19 @@ private struct ModernMetricRow: View {
                 .frame(width: 9, height: 9)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.body.weight(.medium))
+                HStack(spacing: 6) {
+                    Text(title)
+                        .font(.body.weight(.medium))
+
+                    if let badge {
+                        Text(badge)
+                            .font(.caption2.bold())
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.secondary.opacity(0.18))
+                            .clipShape(Capsule())
+                    }
+                }
 
                 Text(subtitle)
                     .font(.system(.caption, design: .monospaced))
@@ -747,10 +813,21 @@ struct ContentView: View {
     @State private var logFilter: LogFilter = .all
     
     // MARK: - Computed Properties
+    /// Datapunkter som faktiskt går att läsa ur HealthKit.
+    private var availableMetricNames: Set<String> {
+        Set(allHealthTypes.filter { $0.isAvailable }.map { $0.name })
+    }
+
+    private var localWarnings: [String] {
+        enabledMetrics.intersection(availableMetricNames).isEmpty
+            ? ["Inga datapunkter valda – välj minst en under Gemensamma Inställningar"]
+            : []
+    }
+
     private var enabledMetrics: Set<String> {
         get {
             guard let decoded = try? JSONDecoder().decode(Set<String>.self, from: enabledMetricsData) else {
-                return Set(allHealthTypes.map { $0.name })
+                return availableMetricNames
             }
             return decoded
         }
@@ -800,6 +877,10 @@ struct ContentView: View {
                 if let lastExport = healthManager.lastExportDate {
                     exportStatusSection(lastExport: lastExport)
                 }
+
+                if !healthManager.lastSentValues.isEmpty {
+                    recentValuesSection
+                }
                 
                 exportActionsSection
                 logsSection
@@ -828,9 +909,10 @@ struct ContentView: View {
     
     @ViewBuilder
     private var configurationWarningsSection: some View {
-        if !healthManager.configurationWarnings.isEmpty {
+        let warnings = healthManager.configurationWarnings + localWarnings
+        if !warnings.isEmpty {
             Section {
-                ForEach(healthManager.configurationWarnings, id: \.self) { warning in
+                ForEach(warnings, id: \.self) { warning in
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(.orange)
@@ -948,7 +1030,7 @@ struct ContentView: View {
                         .frame(width: 20)
                     Text("Välj datapunkter")
                     Spacer()
-                    Text("\(enabledMetrics.count)/\(allHealthTypes.count)")
+                    Text("\(enabledMetrics.intersection(availableMetricNames).count)/\(availableMetricNames.count)")
                         .foregroundColor(.secondary)
                         .font(.caption)
                         .padding(.horizontal, 8)
@@ -956,6 +1038,12 @@ struct ContentView: View {
                         .background(Color.secondary.opacity(0.2))
                         .clipShape(Capsule())
                 }
+            }
+
+            if allHealthTypes.count > availableMetricNames.count {
+                Text("\(allHealthTypes.count - availableMetricNames.count) datapunkter saknar läsbar källa i HealthKit och kan inte aktiveras.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
         } header: {
             Label("Gemensamma Inställningar", systemImage: "gearshape.fill")
@@ -1020,8 +1108,10 @@ struct ContentView: View {
     }
     
     private var recentValuesSection: some View {
-        Section {
-            ForEach(healthManager.lastSentValues.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
+        let values = healthManager.lastSentValues.sorted(by: { $0.key < $1.key })
+
+        return Section {
+            ForEach(Array(values.prefix(15)), id: \.key) { key, value in
                 HStack {
                     Text(key)
                         .font(.subheadline)
@@ -1031,8 +1121,14 @@ struct ContentView: View {
                         .foregroundColor(.accentColor)
                 }
             }
+
+            if values.count > 15 {
+                Text("+ \(values.count - 15) värden till")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
         } header: {
-            Label("Senaste Exporterade Värden", systemImage: "list.number")
+            Label("Senaste Exporterade Värden (\(values.count))", systemImage: "list.number")
         }
     }
     
@@ -1218,28 +1314,21 @@ struct MetricsSelectionView: View {
     var body: some View {
         // MARK: - MODIFIED
         List {
+            if visibleMetricCount == 0 {
+                Text("Inga träffar på ”\(searchText)”")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 24)
+                    .listRowBackground(Color.clear)
+            }
+
             ForEach(HealthCategory.allCases) { category in
-                Section(header: categoryHeader(for: category)) {
-                    ForEach(metricsFor(category), id: \.name) { config in
-                        if matchesSearch(config) {
-                            Toggle(isOn: Binding(
-                                get: { localEnabledMetrics.contains(config.name) },
-                                set: { isEnabled in
-                                    if isEnabled {
-                                        localEnabledMetrics.insert(config.name)
-                                    } else {
-                                        localEnabledMetrics.remove(config.name)
-                                    }
-                                    onUpdate(localEnabledMetrics)
-                                }
-                            )) {
-                                ModernMetricRow(
-                                    title: config.displayName,
-                                    subtitle: config.name,
-                                    isEnabled: localEnabledMetrics.contains(config.name)
-                                )
-                            }
-                            .tint(.accentColor)
+                let metrics = visibleMetrics(category)
+                if !metrics.isEmpty {
+                    Section(header: categoryHeader(for: category)) {
+                        ForEach(metrics, id: \.name) { config in
+                            metricRow(config)
                         }
                     }
                 }
@@ -1265,10 +1354,10 @@ struct MetricsSelectionView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     Button(action: {
-                        localEnabledMetrics = Set(allHealthTypes.map { $0.name })
+                        localEnabledMetrics = Set(allHealthTypes.filter { $0.isAvailable }.map { $0.name })
                         onUpdate(localEnabledMetrics)
                     }) {
-                        Label("Markera alla", systemImage: "checkmark.square.fill")
+                        Label("Markera alla läsbara", systemImage: "checkmark.square.fill")
                     }
                     Button(action: {
                         localEnabledMetrics = []
@@ -1290,11 +1379,17 @@ struct MetricsSelectionView: View {
     }
     
     private func categoryHeader(for category: HealthCategory) -> some View {
-        HStack {
+        let available = metricsFor(category).filter { $0.isAvailable }
+        let enabledCount = available.filter { localEnabledMetrics.contains($0.name) }.count
+
+        return HStack {
             Label(category.rawValue, systemImage: category.icon)
                 .font(.subheadline.bold())
                 .foregroundColor(.primary)
             Spacer()
+            Text("\(enabledCount)/\(available.count)")
+                .font(.caption2.monospacedDigit())
+                .foregroundColor(.secondary)
             Button(action: {
                 toggleCategory(category)
             }) {
@@ -1306,12 +1401,54 @@ struct MetricsSelectionView: View {
                     .clipShape(Capsule())
             }
             .buttonStyle(.plain)
+            .disabled(available.isEmpty)
         }
         .padding(.vertical, 4)
+    }
+
+    /// En rad per datapunkt: växlare för läsbara, gråmarkerad etikett för övriga.
+    @ViewBuilder
+    private func metricRow(_ config: HealthDataConfig) -> some View {
+        if config.isAvailable {
+            Toggle(isOn: Binding(
+                get: { localEnabledMetrics.contains(config.name) },
+                set: { isEnabled in
+                    if isEnabled {
+                        localEnabledMetrics.insert(config.name)
+                    } else {
+                        localEnabledMetrics.remove(config.name)
+                    }
+                    onUpdate(localEnabledMetrics)
+                }
+            )) {
+                ModernMetricRow(
+                    title: config.displayName,
+                    subtitle: config.name,
+                    isEnabled: localEnabledMetrics.contains(config.name)
+                )
+            }
+            .tint(.accentColor)
+        } else {
+            ModernMetricRow(
+                title: config.displayName,
+                subtitle: config.name,
+                isEnabled: false,
+                badge: "Saknar källa"
+            )
+            .opacity(0.5)
+        }
     }
     
     private func metricsFor(_ category: HealthCategory) -> [HealthDataConfig] {
         allHealthTypes.filter { $0.category == category }
+    }
+
+    private func visibleMetrics(_ category: HealthCategory) -> [HealthDataConfig] {
+        metricsFor(category).filter(matchesSearch)
+    }
+
+    private var visibleMetricCount: Int {
+        allHealthTypes.filter(matchesSearch).count
     }
     
     private func matchesSearch(_ config: HealthDataConfig) -> Bool {
@@ -1321,15 +1458,16 @@ struct MetricsSelectionView: View {
     }
     
     private func categoryEnabled(_ category: HealthCategory) -> Bool {
-        let categoryMetrics = metricsFor(category)
-        return categoryMetrics.allSatisfy { localEnabledMetrics.contains($0.name) }
+        let available = metricsFor(category).filter { $0.isAvailable }
+        guard !available.isEmpty else { return false }
+        return available.allSatisfy { localEnabledMetrics.contains($0.name) }
     }
     
     private func toggleCategory(_ category: HealthCategory) {
-        let categoryMetrics = metricsFor(category)
+        let available = metricsFor(category).filter { $0.isAvailable }
         let allEnabled = categoryEnabled(category)
         
-        for metric in categoryMetrics {
+        for metric in available {
             if allEnabled {
                 localEnabledMetrics.remove(metric.name)
             } else {
@@ -1378,6 +1516,8 @@ final class HealthManager: ObservableObject {
     private let config = HealthDataConfiguration.shared
     
     // MARK: - MODIFIED
+    /// Datapunkter som har egen hämtningsväg (kategori-samples, workouts, m.m.)
+    /// i stället för den vanliga quantity-queryn.
     private let specialMetricKeys: Set<String> = [
         "sleep_total",
         "sleep_rem",
@@ -1396,53 +1536,17 @@ final class HealthManager: ObservableObject {
         "weekly_exercise_minutes",
         "heart_rate_max",
         "heart_rate_min",
-        "heart_rate_avg"
+        "heart_rate_avg",
+        "heart_rate_recovery"
     ]
-    
-    // MARK: - ADDED
-    private let unsupportedSyntheticMetricKeys: Set<String> = [
-        "daily_quotes",
-        "goal_calories",
-        "goal_steps",
-        "distance_indoor",
-        "distance_treadmill",
-        "ambient_temp",
-        "air_pressure",
-        "hip_circumference",
-        "body_weight_trend",
-        "bmr",
-        "blood_pressure_avg",
-        "hrv_rmssd",
-        "oxygen_saturation_trend",
-        "wrist_temperature",
-        "balance_score",
-        "fall_risk",
-        "running_cadence",
-        "running_vertical_ratio",
-        "cardio_fitness",
-        "low_heart_rate_events",
-        "high_heart_rate_events",
-        "heart_arrhythmia",
-        "headphone_exposure",
-        "noise_exposure_level",
-        "hearing_health",
-        "mood",
-        "stress_level",
-        "energy_level",
-        "focus_time",
-        "meal_count",
-        "snack_count",
-        "insulin_sensitivity",
-        "time_in_range",
-        "menstrual_cycle",
-        "ovulation_date",
-        "menstrual_flow",
-        "sexual_activity",
-        "pregnancy",
-        "teeth_brushing",
-        "medication_reminder",
-        "sleep_schedule"
-    ]
+
+    // MARK: - Export-skydd
+    /// Ser till att bara en export körs åt gången (knapp + BGTask + observer).
+    private var isExportInFlight = false
+    /// Antal fel i rad per server – en server som strular hoppas över resten av körningen.
+    private var serverFailureStreak: [UUID: Int] = [:]
+    private var disabledServers: Set<UUID> = []
+    private let maxConsecutiveServerFailures = 3
     
     // MARK: - Initialization
     init() {
@@ -1690,12 +1794,13 @@ final class HealthManager: ObservableObject {
         configure(servers: serverList, entityPrefix: prefix, lookbackDays: days)
     }
     
-    /// Läser användarens val av datapunkter (enabled_metrics). Tomt/okänt → alla typer.
+    /// Läser användarens val av datapunkter (enabled_metrics). Tomt/okänt → alla läsbara typer.
     static func loadEnabledMetricsFromDefaults() -> Set<String> {
+        let available = Set(HealthDataConfiguration.shared.allHealthTypes.filter { $0.isAvailable }.map { $0.name })
         guard let data = UserDefaults.standard.data(forKey: AppStorageKey.enabledMetrics.rawValue),
               let decoded = try? JSONDecoder().decode(Set<String>.self, from: data),
               !decoded.isEmpty else {
-            return Set(HealthDataConfiguration.shared.allHealthTypes.map { $0.name })
+            return available
         }
         return decoded
     }
@@ -1756,13 +1861,24 @@ final class HealthManager: ObservableObject {
             if !isBackground { log("❌ Inga servrar konfigurerade!", isError: true) }
             return
         }
-        
+
+        // Bara en export åt gången (knapp + BGTask + HealthKit-observer kan krocka).
+        guard !isExportInFlight else {
+            if !isBackground { log("ℹ️ En export körs redan – hoppar över denna körning.") }
+            return
+        }
+        isExportInFlight = true
+        defer { isExportInFlight = false }
+
+        serverFailureStreak.removeAll()
+        disabledServers.removeAll()
+
         // Capture current values for async operations
         let currentServers = servers
         let currentEntityPrefix = entityPrefix
         let currentLookbackDays = lookbackDays
         let currentConfig = config
-        
+
         if !isBackground {
             isExporting = true
             exportProgress = 0.0
@@ -1771,174 +1887,178 @@ final class HealthManager: ObservableObject {
             lastSentValues.removeAll()
             log("🚀 Startar export till \(currentServers.count) server(ar)...")
         }
-        
+
         // MARK: - MODIFIED
         let standardMetrics = currentConfig.allHealthTypes.filter {
             enabledMetrics.contains($0.name)
+            && $0.isAvailable
             && $0.category != .sleep
             && !specialMetricKeys.contains($0.name)
-            && !unsupportedSyntheticMetricKeys.contains($0.name)
         }
-        
-        // MARK: - ADDED
-        let skippedUnsupportedMetrics = enabledMetrics.intersection(unsupportedSyntheticMetricKeys)
-        if !isBackground && !skippedUnsupportedMetrics.isEmpty {
-            log("ℹ️ \(skippedUnsupportedMetrics.count) syntetiska datapunkter hoppas över tills säker HealthKit-källa finns.")
+
+        // Datapunkter som användaren kryssat men som saknar källa i HealthKit.
+        let skippedUnavailable = enabledMetrics.subtracting(
+            Set(currentConfig.allHealthTypes.filter { $0.isAvailable }.map { $0.name })
+        )
+        if !isBackground && !skippedUnavailable.isEmpty {
+            log("ℹ️ \(skippedUnavailable.count) datapunkter saknar källa i HealthKit och hoppas över.")
         }
-        
-        let totalCategories = standardMetrics.count + 7
+
+        let sleepKeys: Set<String> = [
+            "sleep_total", "sleep_rem", "sleep_deep", "sleep_light",
+            "sleep_awake", "sleep_in_bed", "sleep_efficiency"
+        ]
+        let workoutKeys: Set<String> = [
+            "workouts_count_today", "workouts_minutes_today",
+            "workouts_energy_today", "workouts_distance_today"
+        ]
+        let heartSummaryKeys: Set<String> = ["heart_rate_min", "heart_rate_max", "heart_rate_avg"]
+
+        let hasSleepEnabled = !enabledMetrics.isDisjoint(with: sleepKeys)
+        let hasWorkoutsEnabled = !enabledMetrics.isDisjoint(with: workoutKeys)
+        let hasHeartSummaryEnabled = !enabledMetrics.isDisjoint(with: heartSummaryKeys)
+        let hasMindfulEnabled = enabledMetrics.contains("mindful_minutes")
+        let hasHandwashingEnabled = enabledMetrics.contains("handwashing_count")
+        let hasStreakEnabled = enabledMetrics.contains("workout_streak")
+        let hasWeeklyEnabled = enabledMetrics.contains("weekly_exercise_minutes")
+        let hasRecoveryEnabled = enabledMetrics.contains("heart_rate_recovery")
+
+        let totalSteps = standardMetrics.count
+            + [hasSleepEnabled, hasMindfulEnabled, hasHandwashingEnabled, hasWorkoutsEnabled,
+               hasHeartSummaryEnabled, hasStreakEnabled, hasWeeklyEnabled, hasRecoveryEnabled]
+                .filter { $0 }.count
+
+        let startedAt = Date()
         var completed: Double = 0
-        var successCount = 0
+        var sentMetrics = 0
+        var noDataMetrics = 0
+        var failedMetrics = 0
         
-        // 1. Standard HealthKit data
-        for config in standardMetrics {
+        // 1. Standard HealthKit-data (dagssumma för kumulativa, senaste värdet för diskreta)
+        for metricConfig in standardMetrics {
             if !isBackground {
-                currentMetric = config.displayName
-                exportProgress = completed / Double(totalCategories)
+                updateProgress(step: completed, of: totalSteps, metric: metricConfig.displayName)
             }
-            
+
             do {
-                let value = try await fetchQuantityData(
-                    for: config.id,
-                    unit: config.unit,
-                    isCumulative: config.isCumulative,
+                guard let value = try await fetchQuantityData(
+                    for: metricConfig.id,
+                    unit: metricConfig.unit,
+                    isCumulative: metricConfig.isCumulative,
                     lookbackDays: currentLookbackDays
-                )
-                
-                let entityID = sanitizeEntityID(config.name, prefix: currentEntityPrefix)
-                
-                for server in currentServers {
-                    try await sendToHomeAssistant(
-                        server: server,
-                        entityID: entityID,
-                        state: value,
-                        unit: config.unit.unitString,
-                        friendlyName: config.displayName,
-                        maxRetries: 3
-                    )
+                ) else {
+                    noDataMetrics += 1
+                    if !isBackground { log("➖ \(metricConfig.displayName): ingen data i HealthKit") }
+                    completed += 1
+                    continue
                 }
-                
-                successCount += 1
-                lastSentValues[config.displayName] = value
-                if !isBackground { log("✅ \(config.displayName): \(String(format: "%.2f", value))") }
+
+                let okCount = await sendToAllServers(
+                    servers: currentServers,
+                    key: metricConfig.name,
+                    value: value,
+                    unit: metricConfig.unit.unitString,
+                    friendlyName: metricConfig.displayName,
+                    entityPrefix: currentEntityPrefix,
+                    isBackground: isBackground
+                )
+
+                if okCount > 0 { sentMetrics += 1 } else { failedMetrics += 1 }
             } catch {
+                failedMetrics += 1
                 if !isBackground {
-                    if !(error is URLError) {
-                        log("⚠️ \(config.displayName): \(error.localizedDescription)", isError: false)
-                    }
+                    log("⚠️ \(metricConfig.displayName): \(error.localizedDescription)", isError: true)
                 }
             }
-            
+
             completed += 1
         }
         
-        // MARK: - MODIFIED
-        // 2. Sleep
-        let sleepKeys: Set<String> = [
-            "sleep_total",
-            "sleep_rem",
-            "sleep_deep",
-            "sleep_light",
-            "sleep_awake",
-            "sleep_in_bed",
-            "sleep_efficiency"
-        ]
-
-        let hasSleepEnabled = !enabledMetrics.isDisjoint(with: sleepKeys)
-
+        // 2. Sömn (kategori-samples → uträkning per natt)
         if hasSleepEnabled {
-            currentMetric = "Sömn"
+            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: "Sömn") }
             do {
                 let sleepData = try await fetchSleepBreakdown()
+                let hasData = sleepData.contains { $0.key != "sleep_efficiency" && $0.value > 0 }
+                var anySuccess = false
 
-                for (key, value) in sleepData where enabledMetrics.contains(key) {
-                    let entityID = sanitizeEntityID(key, prefix: currentEntityPrefix)
-                    let friendlyName = currentConfig.allHealthTypes.first(where: { $0.name == key })?.displayName ?? key.capitalized
-                    let unit = key == "sleep_efficiency" ? "%" : "h"
+                if hasData {
+                    for (key, value) in sleepData where enabledMetrics.contains(key) {
+                        let friendlyName = currentConfig.allHealthTypes.first(where: { $0.name == key })?.displayName ?? key.capitalized
+                        let unit = key == "sleep_efficiency" ? "%" : "h"
 
-                    for server in currentServers {
-                        try await sendToHomeAssistant(
-                            server: server,
-                            entityID: entityID,
-                            state: value,
+                        let okCount = await sendToAllServers(
+                            servers: currentServers,
+                            key: key,
+                            value: value,
                             unit: unit,
                             friendlyName: friendlyName,
-                            maxRetries: 3
+                            entityPrefix: currentEntityPrefix,
+                            isBackground: isBackground
                         )
+                        anySuccess = anySuccess || okCount > 0
                     }
-
-                    lastSentValues[friendlyName] = value
+                } else {
+                    noDataMetrics += 1
+                    if !isBackground { log("➖ Sömn: inga sömnsamples senaste 36 h") }
                 }
 
-                successCount += 1
-                if !isBackground { log("✅ Sömn exporterad") }
+                if anySuccess { sentMetrics += 1 } else if hasData { failedMetrics += 1 }
             } catch {
-                if !isBackground { log("⚠️ Fel vid sömnhämtning: \(error.localizedDescription)", isError: true) }
+                failedMetrics += 1
+                if !isBackground { log("⚠️ Sömn: \(error.localizedDescription)", isError: true) }
             }
         }
 
         completed += 1
         
         // 3. Mindfulness
-        if enabledMetrics.contains("mindful_minutes") {
-            currentMetric = "Mindfulness"
+        if hasMindfulEnabled {
+            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: "Mindfulness") }
             do {
                 let mindful = try await fetchMindfulMinutes()
-                let entityID = sanitizeEntityID("mindful_minutes", prefix: currentEntityPrefix)
-                
-                for server in currentServers {
-                    try await sendToHomeAssistant(
-                        server: server,
-                        entityID: entityID,
-                        state: mindful,
-                        unit: "min",
-                        friendlyName: "Mindfulness (minuter)",
-                        maxRetries: 3
-                    )
-                }
-                successCount += 1
-                lastSentValues["Mindfulness (minuter)"] = mindful
-                if !isBackground { log("✅ Mindfulness: \(String(format: "%.0f", mindful)) min") }
+                let okCount = await sendToAllServers(
+                    servers: currentServers,
+                    key: "mindful_minutes",
+                    value: mindful,
+                    unit: "min",
+                    friendlyName: "Mindfulness (minuter)",
+                    entityPrefix: currentEntityPrefix,
+                    isBackground: isBackground
+                )
+                if okCount > 0 { sentMetrics += 1 } else { failedMetrics += 1 }
             } catch {
+                failedMetrics += 1
                 if !isBackground { log("⚠️ Mindfulness: \(error.localizedDescription)", isError: true) }
             }
         }
         completed += 1
         
         // 4. Handwashing
-        if enabledMetrics.contains("handwashing_count") {
-            currentMetric = "Handtvätt"
+        if hasHandwashingEnabled {
+            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: "Handtvätt") }
             do {
                 let count = try await fetchHandwashingCountToday()
-                let entityID = sanitizeEntityID("handwashing_count", prefix: currentEntityPrefix)
-                
-                for server in currentServers {
-                    try await sendToHomeAssistant(
-                        server: server,
-                        entityID: entityID,
-                        state: count,
-                        unit: "st",
-                        friendlyName: "Handtvätt (antal)",
-                        maxRetries: 3
-                    )
-                }
-                successCount += 1
-                lastSentValues["Handtvätt (antal)"] = count
-                if !isBackground { log("✅ Handtvätt: \(Int(count))") }
+                let okCount = await sendToAllServers(
+                    servers: currentServers,
+                    key: "handwashing_count",
+                    value: count,
+                    unit: "st",
+                    friendlyName: "Handtvätt (antal)",
+                    entityPrefix: currentEntityPrefix,
+                    isBackground: isBackground
+                )
+                if okCount > 0 { sentMetrics += 1 } else { failedMetrics += 1 }
             } catch {
+                failedMetrics += 1
                 if !isBackground { log("⚠️ Handtvätt: \(error.localizedDescription)", isError: true) }
             }
         }
         completed += 1
         
         // 5. Workouts
-        let workoutKeys: Set<String> = [
-            "workouts_count_today", "workouts_minutes_today",
-            "workouts_energy_today", "workouts_distance_today"
-        ]
-        
-        if !enabledMetrics.isDisjoint(with: workoutKeys) {
-            currentMetric = "Träning (Workouts)"
+        if hasWorkoutsEnabled {
+            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: "Träning (Workouts)") }
             do {
                 let summary = try await fetchWorkoutSummaryToday()
                 
@@ -1948,43 +2068,34 @@ final class HealthManager: ObservableObject {
                     ("workouts_energy_today", summary.kcal, "kcal", "Träning (kcal idag)"),
                     ("workouts_distance_today", summary.meters, "m", "Träning (meter idag)")
                 ]
-                
+                var anySuccess = false
                 for item in mapping where enabledMetrics.contains(item.key) {
-                    let entityID = sanitizeEntityID(item.key, prefix: currentEntityPrefix)
-                    for server in currentServers {
-                        try await sendToHomeAssistant(
-                            server: server,
-                            entityID: entityID,
-                            state: item.value,
-                            unit: item.unit,
-                            friendlyName: item.friendly,
-                            maxRetries: 3
-                        )
-                    }
-                    lastSentValues[item.friendly] = item.value
+                    let okCount = await sendToAllServers(
+                        servers: currentServers,
+                        key: item.key,
+                        value: item.value,
+                        unit: item.unit,
+                        friendlyName: item.friendly,
+                        entityPrefix: currentEntityPrefix,
+                        isBackground: isBackground
+                    )
+                    anySuccess = anySuccess || okCount > 0
                 }
                 
-                successCount += 1
+                if anySuccess { sentMetrics += 1 } else { failedMetrics += 1 }
                 if !isBackground {
                     log("✅ Workouts: \(Int(summary.count)) pass, \(Int(summary.minutes)) min, \(Int(summary.kcal)) kcal, \(Int(summary.meters)) m")
                 }
             } catch {
+                failedMetrics += 1
                 if !isBackground { log("⚠️ Workouts: \(error.localizedDescription)", isError: true) }
             }
         }
         completed += 1
         
-        // MARK: - ADDED
-        // 6. Heart rate summary
-        let heartSummaryKeys: Set<String> = [
-            "heart_rate_min",
-            "heart_rate_max",
-            "heart_rate_avg"
-        ]
-
-        if !enabledMetrics.isDisjoint(with: heartSummaryKeys) {
-            currentMetric = "Pulsstatistik"
-
+        // 6. Pulsstatistik (min/max/snitt idag)
+        if hasHeartSummaryEnabled {
+            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: "Pulsstatistik") }
             do {
                 let summary = try await fetchHeartRateSummaryToday()
 
@@ -1994,130 +2105,194 @@ final class HealthManager: ObservableObject {
                     ("heart_rate_avg", summary.average, "count/min", "Genomsnittlig puls")
                 ]
 
+                var anySuccess = false
                 for item in mapping where enabledMetrics.contains(item.key) {
-                    let entityID = sanitizeEntityID(item.key, prefix: currentEntityPrefix)
-
-                    for server in currentServers {
-                        try await sendToHomeAssistant(
-                            server: server,
-                            entityID: entityID,
-                            state: item.value,
-                            unit: item.unit,
-                            friendlyName: item.friendly,
-                            maxRetries: 3
-                        )
-                    }
-
-                    lastSentValues[item.friendly] = item.value
+                    let okCount = await sendToAllServers(
+                        servers: currentServers,
+                        key: item.key,
+                        value: item.value,
+                        unit: item.unit,
+                        friendlyName: item.friendly,
+                        entityPrefix: currentEntityPrefix,
+                        isBackground: isBackground
+                    )
+                    anySuccess = anySuccess || okCount > 0
                 }
 
-                successCount += 1
-                if !isBackground {
-                    log("✅ Pulsstatistik exporterad")
-                }
+                if anySuccess { sentMetrics += 1 } else { failedMetrics += 1 }
+                if !isBackground { log("✅ Pulsstatistik exporterad") }
             } catch {
-                if !isBackground {
-                    log("⚠️ Pulsstatistik: \(error.localizedDescription)", isError: true)
-                }
+                failedMetrics += 1
+                if !isBackground { log("⚠️ Pulsstatistik: \(error.localizedDescription)", isError: true) }
             }
         }
         completed += 1
 
-        // MARK: - ADDED
-        // 7. Workout streak
-        if enabledMetrics.contains("workout_streak") {
-            currentMetric = "Tränings-serie"
+        // 7. Puls-återhämtning (pulsfall 1–2 min efter dagens senaste pass)
+        if hasRecoveryEnabled {
+            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: "Puls-återhämtning") }
+            do {
+                if let recovery = try await fetchHeartRateRecoveryToday() {
+                    let okCount = await sendToAllServers(
+                        servers: currentServers,
+                        key: "heart_rate_recovery",
+                        value: recovery,
+                        unit: "count/min",
+                        friendlyName: "Puls-återhämtning",
+                        entityPrefix: currentEntityPrefix,
+                        isBackground: isBackground
+                    )
+                    if okCount > 0 { sentMetrics += 1 } else { failedMetrics += 1 }
+                } else {
+                    noDataMetrics += 1
+                    if !isBackground { log("➖ Puls-återhämtning: inget avslutat pass (eller för lite pulldata) idag") }
+                }
+            } catch {
+                failedMetrics += 1
+                if !isBackground { log("⚠️ Puls-återhämtning: \(error.localizedDescription)", isError: true) }
+            }
+        }
+        completed += 1
 
+        // 8. Tränings-serie
+        if hasStreakEnabled {
+            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: "Tränings-serie") }
             do {
                 let streak = try await fetchWorkoutStreak(maxDays: 90)
-                let entityID = sanitizeEntityID("workout_streak", prefix: currentEntityPrefix)
-
-                for server in currentServers {
-                    try await sendToHomeAssistant(
-                        server: server,
-                        entityID: entityID,
-                        state: Double(streak),
-                        unit: "d",
-                        friendlyName: "Tränings-serie",
-                        maxRetries: 3
-                    )
-                }
-
-                successCount += 1
-                lastSentValues["Tränings-serie"] = Double(streak)
-                if !isBackground {
-                    log("✅ Tränings-serie: \(streak) dagar")
-                }
+                let okCount = await sendToAllServers(
+                    servers: currentServers,
+                    key: "workout_streak",
+                    value: Double(streak),
+                    unit: "d",
+                    friendlyName: "Tränings-serie",
+                    entityPrefix: currentEntityPrefix,
+                    isBackground: isBackground
+                )
+                if okCount > 0 { sentMetrics += 1 } else { failedMetrics += 1 }
             } catch {
-                if !isBackground {
-                    log("⚠️ Tränings-serie: \(error.localizedDescription)", isError: true)
-                }
+                failedMetrics += 1
+                if !isBackground { log("⚠️ Tränings-serie: \(error.localizedDescription)", isError: true) }
             }
         }
         completed += 1
 
-        // MARK: - ADDED
-        // 8. Weekly exercise minutes
-        if enabledMetrics.contains("weekly_exercise_minutes") {
-            currentMetric = "Veckovis träning"
-
+        // 9. Veckovis träningstid (rullande 7 dagar)
+        if hasWeeklyEnabled {
+            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: "Veckovis träning") }
             do {
                 let minutes = try await fetchWeeklyExerciseMinutes()
-                let entityID = sanitizeEntityID("weekly_exercise_minutes", prefix: currentEntityPrefix)
-
-                for server in currentServers {
-                    try await sendToHomeAssistant(
-                        server: server,
-                        entityID: entityID,
-                        state: minutes,
-                        unit: "min",
-                        friendlyName: "Veckovis träning (min)",
-                        maxRetries: 3
-                    )
-                }
-
-                successCount += 1
-                lastSentValues["Veckovis träning (min)"] = minutes
-                if !isBackground {
-                    log("✅ Veckovis träning: \(Int(minutes)) min")
-                }
+                let okCount = await sendToAllServers(
+                    servers: currentServers,
+                    key: "weekly_exercise_minutes",
+                    value: minutes,
+                    unit: "min",
+                    friendlyName: "Veckovis träning (min)",
+                    entityPrefix: currentEntityPrefix,
+                    isBackground: isBackground
+                )
+                if okCount > 0 { sentMetrics += 1 } else { failedMetrics += 1 }
             } catch {
-                if !isBackground {
-                    log("⚠️ Veckovis träning: \(error.localizedDescription)", isError: true)
-                }
+                failedMetrics += 1
+                if !isBackground { log("⚠️ Veckovis träning: \(error.localizedDescription)", isError: true) }
             }
         }
         completed += 1
-        
+
         // Update status
         isExporting = false
         exportProgress = 1.0
         currentMetric = ""
         lastExportDate = Date()
-        lastExportSuccess = successCount > 0
-        exportedMetricsCount = successCount
-        
-        saveLastExportStatus(success: successCount > 0, count: successCount)
-        
+        lastExportSuccess = sentMetrics > 0
+        exportedMetricsCount = sentMetrics
+
+        saveLastExportStatus(success: lastExportSuccess, count: sentMetrics)
+
         if !isBackground {
-            log("🏁 Export klar! \(successCount)/\(Int(totalCategories)) kategorier behandlade.")
+            let seconds = Date().timeIntervalSince(startedAt)
+            log("🏁 Klart på \(String(format: "%.1f", seconds))s – \(sentMetrics) skickade, \(noDataMetrics) utan data, \(failedMetrics) misslyckade.")
         }
+    }
+
+    /// Uppdaterar progressraden (anropas i början av varje steg).
+    private func updateProgress(step: Double, of total: Int, metric: String) {
+        currentMetric = metric
+        exportProgress = total > 0 ? min(1.0, step / Double(total)) : 0
+    }
+
+    /// Skickar ett värde till alla aktiva servrar. Servrar som failar
+    /// `maxConsecutiveServerFailures` gånger i rad hoppas över resten av körningen
+    /// (undviker hundratals felrader när en server ligger nere).
+    /// - Returns: antal servrar som tog emot värdet.
+    private func sendToAllServers(
+        servers: [HAServerConfig],
+        key: String,
+        value: Double,
+        unit: String,
+        friendlyName: String,
+        entityPrefix: String,
+        isBackground: Bool
+    ) async -> Int {
+        let entityID = sanitizeEntityID(key, prefix: entityPrefix)
+        var okCount = 0
+        var failureText: String?
+
+        for server in servers where !disabledServers.contains(server.id) {
+            do {
+                try await sendToHomeAssistant(
+                    server: server,
+                    entityID: entityID,
+                    state: value,
+                    unit: unit,
+                    friendlyName: friendlyName,
+                    maxRetries: 3
+                )
+                okCount += 1
+                serverFailureStreak[server.id] = 0
+            } catch {
+                failureText = "\(server.name): \(error.localizedDescription)"
+                let streak = (serverFailureStreak[server.id] ?? 0) + 1
+                serverFailureStreak[server.id] = streak
+
+                if streak >= maxConsecutiveServerFailures {
+                    disabledServers.insert(server.id)
+                    log("⛔️ \(server.name) hoppas över resten av körningen efter \(streak) fel i rad: \(error.localizedDescription)", isError: true)
+                }
+            }
+        }
+
+        if okCount > 0 {
+            lastSentValues[friendlyName] = value
+            if !isBackground { log("✅ \(friendlyName): \(formatted(value)) \(unit)") }
+        } else if let failureText {
+            log("❌ \(friendlyName): \(failureText)", isError: true)
+        }
+
+        return okCount
+    }
+
+    /// Kompakt talformat: heltal utan decimaler, annars två decimaler.
+    private func formatted(_ value: Double) -> String {
+        abs(value - value.rounded()) < 0.005 ? String(format: "%.0f", value) : String(format: "%.2f", value)
     }
     
     // MARK: - HealthKit Fetchers
     
+    /// - Returns: värdet, eller nil när datapunkten saknar samples/enheten inte
+    ///   stämmer (då skickas inget till HA – tidigare skrevs 0 och förstörde historiken).
     private func fetchQuantityData(
         for typeIdentifier: HKQuantityTypeIdentifier,
         unit: HKUnit,
         isCumulative: Bool,
         lookbackDays: Int
-    ) async throws -> Double {
+    ) async throws -> Double? {
         guard let type = HKQuantityType.quantityType(forIdentifier: typeIdentifier) else {
             throw HealthExportError.healthKitUnauthorized
         }
         
+        // Kumulativ datapunkt mot en diskret HealthKit-typ = fel mappning, inte 0.
         if isCumulative && type.aggregationStyle != .cumulative {
-            return 0.0
+            return nil
         }
         
         let now = Date()
@@ -2132,8 +2307,8 @@ final class HealthManager: ObservableObject {
         
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: now, options: .strictStartDate)
         
-        return try await withCheckedThrowingContinuation { continuation in
-            if isCumulative {
+        if isCumulative {
+            return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Double?, Error>) in
                 let query = HKStatisticsQuery(
                     quantityType: type,
                     quantitySamplePredicate: predicate,
@@ -2144,14 +2319,23 @@ final class HealthManager: ObservableObject {
                         return
                     }
                     
-                    if let quantity = result?.sumQuantity(), quantity.is(compatibleWith: unit) {
-                        continuation.resume(returning: quantity.doubleValue(for: unit))
-                    } else {
+                    // Ingen sample ännu idag = legitim nolla för en dagssumma.
+                    guard let quantity = result?.sumQuantity() else {
                         continuation.resume(returning: 0.0)
+                        return
                     }
+                    
+                    guard quantity.is(compatibleWith: unit) else {
+                        continuation.resume(returning: nil)
+                        return
+                    }
+                    
+                    continuation.resume(returning: quantity.doubleValue(for: unit))
                 }
                 healthStore.execute(query)
-            } else {
+            }
+        } else {
+            return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Double?, Error>) in
                 let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
                 let query = HKSampleQuery(
                     sampleType: type,
@@ -2164,8 +2348,9 @@ final class HealthManager: ObservableObject {
                         return
                     }
                     
-                    guard let sample = samples?.first as? HKQuantitySample, sample.quantity.is(compatibleWith: unit) else {
-                        continuation.resume(returning: 0.0)
+                    guard let sample = samples?.first as? HKQuantitySample,
+                          sample.quantity.is(compatibleWith: unit) else {
+                        continuation.resume(returning: nil)
                         return
                     }
                     continuation.resume(returning: sample.quantity.doubleValue(for: unit))
@@ -2502,6 +2687,77 @@ final class HealthManager: ObservableObject {
         }
     }
     
+    // MARK: - ADDED
+    /// Puls-återhämtning: snittpuls under sista minuten av dagens senaste
+    /// träningspass minus snittpulsen 1–2 min efter passet (slag/min).
+    /// Returnerar nil när pass eller pulldata saknas (skickas då inte alls).
+    private func fetchHeartRateRecoveryToday() async throws -> Double? {
+        guard let hrType = HKQuantityType.quantityType(forIdentifier: .heartRate) else {
+            return nil
+        }
+
+        let now = Date()
+        let startOfDay = Calendar.current.startOfDay(for: now)
+        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: now, options: .strictStartDate)
+
+        let workouts: [HKWorkout] = try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: HKObjectType.workoutType(),
+                predicate: predicate,
+                limit: 1,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)]
+            ) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                continuation.resume(returning: (samples as? [HKWorkout]) ?? [])
+            }
+            healthStore.execute(query)
+        }
+
+        guard let workout = workouts.first else { return nil }
+
+        // Passet måste ha hunnit få 1–2 min efterdata innan vi kan mäta fallet.
+        let afterStart = workout.endDate.addingTimeInterval(60)
+        let afterEnd = workout.endDate.addingTimeInterval(120)
+        guard afterEnd <= now else { return nil }
+
+        let duringStart = max(workout.endDate.addingTimeInterval(-60), workout.startDate)
+        guard let during = try await averageHeartRate(of: hrType, from: duringStart, to: workout.endDate),
+              let after = try await averageHeartRate(of: hrType, from: afterStart, to: afterEnd) else {
+            return nil
+        }
+
+        return max(0, during - after)
+    }
+
+    /// Snittpuls (slag/min) i intervallet, nil om inga samples finns.
+    private func averageHeartRate(of type: HKQuantityType, from start: Date, to end: Date) async throws -> Double? {
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        let unit = HKUnit.count().unitDivided(by: .minute())
+
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Double?, Error>) in
+            let query = HKStatisticsQuery(
+                quantityType: type,
+                quantitySamplePredicate: predicate,
+                options: .discreteAverage
+            ) { _, result, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                guard let quantity = result?.averageQuantity(), quantity.is(compatibleWith: unit) else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                continuation.resume(returning: quantity.doubleValue(for: unit))
+            }
+            healthStore.execute(query)
+        }
+    }
+
     // MARK: - Helpers
     
     private func sanitizeEntityID(_ rawName: String, prefix: String) -> String {
@@ -2566,6 +2822,14 @@ final class HealthManager: ObservableObject {
                 
             } catch {
                 lastError = error
+
+                // Klientfel (401/403/404/…) går inte över av sig själva – försök inte igen.
+                if case HealthExportError.invalidResponse(let code) = error,
+                   (400..<500).contains(code),
+                   code != 429 {
+                    throw error
+                }
+
                 if attempt < maxRetries {
                     let delay = UInt64(attempt * 2_000_000_000)
                     try? await Task.sleep(nanoseconds: delay)
