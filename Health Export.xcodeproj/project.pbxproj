@@ -406,6 +406,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Health-Export-Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.medical";
 				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "Health Export läser journaldata från Apple Health för att exportera dem till din Home Assistant-server.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Health Export läser steg, puls, sömn, vikt och andra hälsodata från Apple Health för att skicka dem till din Home Assistant-server.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Health Export skriver inga hälsodata till Apple Health. Behörigheten krävs för att appen ska kunna läsa och exportera din hälsodata till din Home Assistant-server.";
@@ -429,7 +430,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -447,6 +448,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Health-Export-Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.medical";
 				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "Health Export läser journaldata från Apple Health för att exportera dem till din Home Assistant-server.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Health Export läser steg, puls, sömn, vikt och andra hälsodata från Apple Health för att skicka dem till din Home Assistant-server.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Health Export skriver inga hälsodata till Apple Health. Behörigheten krävs för att appen ska kunna läsa och exportera din hälsodata till din Home Assistant-server.";
@@ -470,7 +472,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
