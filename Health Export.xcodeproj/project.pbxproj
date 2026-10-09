@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 90;
 	objects = {
 
 /* Begin PBXContainerItemProxy section */
@@ -50,24 +50,18 @@
 /* Begin PBXFrameworksBuildPhase section */
 		B722E8B12ED39B6F0081E0FE /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		B722E8BE2ED39B720081E0FE /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		B722E8C82ED39B720081E0FE /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
@@ -105,14 +99,10 @@
 			);
 			buildRules = (
 			);
-			dependencies = (
-			);
 			fileSystemSynchronizedGroups = (
 				B722E8B62ED39B6F0081E0FE /* Health Export */,
 			);
 			name = "Health Export";
-			packageProductDependencies = (
-			);
 			productName = "Health Export";
 			productReference = B722E8B42ED39B6F0081E0FE /* Health Export.app */;
 			productType = "com.apple.product-type.application";
@@ -134,8 +124,6 @@
 				B722E8C42ED39B720081E0FE /* Health ExportTests */,
 			);
 			name = "Health ExportTests";
-			packageProductDependencies = (
-			);
 			productName = "Health ExportTests";
 			productReference = B722E8C12ED39B720081E0FE /* Health ExportTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -157,8 +145,6 @@
 				B722E8CE2ED39B720081E0FE /* Health ExportUITests */,
 			);
 			name = "Health ExportUITests";
-			packageProductDependencies = (
-			);
 			productName = "Health ExportUITests";
 			productReference = B722E8CB2ED39B720081E0FE /* Health ExportUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
@@ -195,7 +181,7 @@
 			);
 			mainGroup = B722E8AB2ED39B6F0081E0FE;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
+			preferredProjectObjectVersion = 90;
 			productRefGroup = B722E8B52ED39B6F0081E0FE /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -210,48 +196,36 @@
 /* Begin PBXResourcesBuildPhase section */
 		B722E8B22ED39B6F0081E0FE /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		B722E8BF2ED39B720081E0FE /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		B722E8C92ED39B720081E0FE /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		B722E8B02ED39B6F0081E0FE /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		B722E8BD2ED39B720081E0FE /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		B722E8C72ED39B720081E0FE /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
@@ -269,7 +243,7 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		B722E8D32ED39B720081E0FE /* Debug */ = {
+		B722E8D32ED39B720081E0FE /* Debug configuration for PBXProject "Health Export" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -334,7 +308,7 @@
 			};
 			name = Debug;
 		};
-		B722E8D42ED39B720081E0FE /* Release */ = {
+		B722E8D42ED39B720081E0FE /* Release configuration for PBXProject "Health Export" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -392,14 +366,13 @@
 			};
 			name = Release;
 		};
-		B722E8D62ED39B720081E0FE /* Debug */ = {
+		B722E8D62ED39B720081E0FE /* Debug configuration for PBXNativeTarget "Health Export" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Health Export/Health Export.entitlements";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = AZCLR78F5U;
@@ -419,11 +392,10 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "fatalv.Health-Export";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Health-Export";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -434,14 +406,13 @@
 			};
 			name = Debug;
 		};
-		B722E8D72ED39B720081E0FE /* Release */ = {
+		B722E8D72ED39B720081E0FE /* Release configuration for PBXNativeTarget "Health Export" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Health Export/Health Export.entitlements";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = AZCLR78F5U;
@@ -461,11 +432,10 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "fatalv.Health-Export";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Health-Export";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -476,7 +446,7 @@
 			};
 			name = Release;
 		};
-		B722E8D92ED39B720081E0FE /* Debug */ = {
+		B722E8D92ED39B720081E0FE /* Debug configuration for PBXNativeTarget "Health ExportTests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -485,7 +455,7 @@
 				DEVELOPMENT_TEAM = AZCLR78F5U;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "fatalv.Health-ExportTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -498,7 +468,7 @@
 			};
 			name = Debug;
 		};
-		B722E8DA2ED39B720081E0FE /* Release */ = {
+		B722E8DA2ED39B720081E0FE /* Release configuration for PBXNativeTarget "Health ExportTests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -507,7 +477,7 @@
 				DEVELOPMENT_TEAM = AZCLR78F5U;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "fatalv.Health-ExportTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -520,14 +490,14 @@
 			};
 			name = Release;
 		};
-		B722E8DC2ED39B720081E0FE /* Debug */ = {
+		B722E8DC2ED39B720081E0FE /* Debug configuration for PBXNativeTarget "Health ExportUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = AZCLR78F5U;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "fatalv.Health-ExportUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -540,14 +510,14 @@
 			};
 			name = Debug;
 		};
-		B722E8DD2ED39B720081E0FE /* Release */ = {
+		B722E8DD2ED39B720081E0FE /* Release configuration for PBXNativeTarget "Health ExportUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = AZCLR78F5U;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "fatalv.Health-ExportUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -566,37 +536,33 @@
 		B722E8AF2ED39B6F0081E0FE /* Build configuration list for PBXProject "Health Export" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				B722E8D32ED39B720081E0FE /* Debug */,
-				B722E8D42ED39B720081E0FE /* Release */,
+				B722E8D32ED39B720081E0FE /* Debug configuration for PBXProject "Health Export" */,
+				B722E8D42ED39B720081E0FE /* Release configuration for PBXProject "Health Export" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		B722E8D52ED39B720081E0FE /* Build configuration list for PBXNativeTarget "Health Export" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				B722E8D62ED39B720081E0FE /* Debug */,
-				B722E8D72ED39B720081E0FE /* Release */,
+				B722E8D62ED39B720081E0FE /* Debug configuration for PBXNativeTarget "Health Export" */,
+				B722E8D72ED39B720081E0FE /* Release configuration for PBXNativeTarget "Health Export" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		B722E8D82ED39B720081E0FE /* Build configuration list for PBXNativeTarget "Health ExportTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				B722E8D92ED39B720081E0FE /* Debug */,
-				B722E8DA2ED39B720081E0FE /* Release */,
+				B722E8D92ED39B720081E0FE /* Debug configuration for PBXNativeTarget "Health ExportTests" */,
+				B722E8DA2ED39B720081E0FE /* Release configuration for PBXNativeTarget "Health ExportTests" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		B722E8DB2ED39B720081E0FE /* Build configuration list for PBXNativeTarget "Health ExportUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				B722E8DC2ED39B720081E0FE /* Debug */,
-				B722E8DD2ED39B720081E0FE /* Release */,
+				B722E8DC2ED39B720081E0FE /* Debug configuration for PBXNativeTarget "Health ExportUITests" */,
+				B722E8DD2ED39B720081E0FE /* Release configuration for PBXNativeTarget "Health ExportUITests" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */

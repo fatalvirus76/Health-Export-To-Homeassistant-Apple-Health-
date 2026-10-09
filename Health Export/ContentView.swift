@@ -16,6 +16,8 @@ struct HealthDataConfig: Identifiable {
     /// false = appen kan inte läsa värdet ur HealthKit (saknar källa i iOS,
     /// kräver tredjepartsapp eller är en aggregering som saknar API).
     let isAvailable: Bool
+    /// Engelskt visningsnamn (nil = samma som svenska).
+    let displayNameEN: String?
 
     /// Datapunkter utan läsbar HealthKit-källa. De visas i urvalslistan men
     /// kan inte aktiveras och exporteras aldrig (tidigare skickades 0 till HA).
@@ -63,7 +65,7 @@ struct HealthDataConfig: Identifiable {
         "sleep_schedule"
     ]
 
-    init(id: HKQuantityTypeIdentifier, name: String, displayName: String? = nil, unit: HKUnit, isCumulative: Bool, category: HealthCategory) {
+    init(id: HKQuantityTypeIdentifier, name: String, displayName: String? = nil, displayNameEN: String? = nil, unit: HKUnit, isCumulative: Bool, category: HealthCategory) {
         self.id = id
         self.name = name
         self.displayName = displayName ?? name.replacingOccurrences(of: "_", with: " ").capitalized
@@ -71,6 +73,13 @@ struct HealthDataConfig: Identifiable {
         self.isCumulative = isCumulative
         self.category = category
         self.isAvailable = !Self.unavailableMetricNames.contains(name)
+        self.displayNameEN = displayNameEN ?? displayName
+    }
+
+    /// Namn som visas i UI (översatt när appens språk är engelska).
+    var localizedDisplayName: String {
+        guard L.lang == .english, let en = displayNameEN else { return displayName }
+        return en
     }
 }
 
@@ -93,6 +102,28 @@ enum HealthCategory: String, CaseIterable, Identifiable {
     case hearing = "Hörsel"
     case mind = "Sinne"
     case reproductive = "Reproduktion"
+
+    /// rawValue behålls som HA-neutral nyckel; UI läser localizedName.
+    var localizedName: String {
+        switch self {
+        case .sleep: return L.t("Sömn", "Sleep")
+        case .activity: return L.t("Aktivitet", "Activity")
+        case .distance: return L.t("Distanser", "Distances")
+        case .vitals: return L.t("Vitalvärden", "Vitals")
+        case .body: return L.t("Kroppsmått", "Body")
+        case .nutrition: return L.t("Näring", "Nutrition")
+        case .mobility: return L.t("Mobilitet", "Mobility")
+        case .running: return L.t("Löpning", "Running")
+        case .sport: return L.t("Sport", "Sport")
+        case .environment: return L.t("Miljö", "Environment")
+        case .medical: return L.t("Medicinskt", "Medical")
+        case .habits: return L.t("Vanor", "Habits")
+        case .heart: return L.t("Hjärta", "Heart")
+        case .hearing: return L.t("Hörsel", "Hearing")
+        case .mind: return L.t("Sinne", "Mind")
+        case .reproductive: return L.t("Reproduktion", "Reproductive")
+        }
+    }
 
     var id: String { rawValue }
     
@@ -134,220 +165,220 @@ final class HealthDataConfiguration: @unchecked Sendable {
         
         // MARK: - Sleep
         types.append(contentsOf: [
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sleep_total", displayName: "Sömn (Total)", unit: .hour(), isCumulative: true, category: .sleep),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sleep_rem", displayName: "Sömn (REM)", unit: .hour(), isCumulative: true, category: .sleep),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sleep_deep", displayName: "Sömn (Djup)", unit: .hour(), isCumulative: true, category: .sleep),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sleep_light", displayName: "Sömn (Kärna/Lätt)", unit: .hour(), isCumulative: true, category: .sleep),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sleep_awake", displayName: "Vaken i sängen", unit: .hour(), isCumulative: true, category: .sleep),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sleep_efficiency", displayName: "Sömn-effektivitet", unit: .percent(), isCumulative: false, category: .sleep),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sleep_in_bed", displayName: "Tid i sängen", unit: .hour(), isCumulative: true, category: .sleep),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sleep_total", displayName: "Sömn (Total)", displayNameEN: "Sleep (Total)", unit: .hour(), isCumulative: true, category: .sleep),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sleep_rem", displayName: "Sömn (REM)", displayNameEN: "Sleep (REM)", unit: .hour(), isCumulative: true, category: .sleep),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sleep_deep", displayName: "Sömn (Djup)", displayNameEN: "Sleep (Deep)", unit: .hour(), isCumulative: true, category: .sleep),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sleep_light", displayName: "Sömn (Kärna/Lätt)", displayNameEN: "Sleep (Core/Light)", unit: .hour(), isCumulative: true, category: .sleep),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sleep_awake", displayName: "Vaken i sängen", displayNameEN: "Awake in bed", unit: .hour(), isCumulative: true, category: .sleep),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sleep_efficiency", displayName: "Sömn-effektivitet", displayNameEN: "Sleep efficiency", unit: .percent(), isCumulative: false, category: .sleep),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sleep_in_bed", displayName: "Tid i sängen", displayNameEN: "Time in bed", unit: .hour(), isCumulative: true, category: .sleep),
         ])
         
         // MARK: - Activity
         types.append(contentsOf: [
-            HealthDataConfig(id: .stepCount, name: "steps", displayName: "Steg", unit: .count(), isCumulative: true, category: .activity),
-            HealthDataConfig(id: .activeEnergyBurned, name: "active_energy", displayName: "Aktiv energi", unit: .kilocalorie(), isCumulative: true, category: .activity),
-            HealthDataConfig(id: .appleExerciseTime, name: "exercise_time", displayName: "Träningstid", unit: .minute(), isCumulative: true, category: .activity),
-            HealthDataConfig(id: .appleStandTime, name: "stand_time", displayName: "Stå-tid", unit: .minute(), isCumulative: true, category: .activity),
-            HealthDataConfig(id: .appleMoveTime, name: "move_time", displayName: "Rörelsestid", unit: .minute(), isCumulative: true, category: .activity),
-            HealthDataConfig(id: .basalEnergyBurned, name: "basal_energy", displayName: "Basalenergi", unit: .kilocalorie(), isCumulative: true, category: .activity),
-            HealthDataConfig(id: .flightsClimbed, name: "flights_climbed", displayName: "Trappor", unit: .count(), isCumulative: true, category: .activity),
-            HealthDataConfig(id: .appleExerciseTime, name: "daily_quotes", displayName: "Dagliga mål", unit: .count(), isCumulative: true, category: .activity),
-            HealthDataConfig(id: .appleExerciseTime, name: "goal_calories", displayName: "Kalorimål", unit: .kilocalorie(), isCumulative: false, category: .activity),
-            HealthDataConfig(id: .appleExerciseTime, name: "goal_steps", displayName: "Stegmål", unit: .count(), isCumulative: false, category: .activity),
+            HealthDataConfig(id: .stepCount, name: "steps", displayName: "Steg", displayNameEN: "Steps", unit: .count(), isCumulative: true, category: .activity),
+            HealthDataConfig(id: .activeEnergyBurned, name: "active_energy", displayName: "Aktiv energi", displayNameEN: "Active energy", unit: .kilocalorie(), isCumulative: true, category: .activity),
+            HealthDataConfig(id: .appleExerciseTime, name: "exercise_time", displayName: "Träningstid", displayNameEN: "Workout time", unit: .minute(), isCumulative: true, category: .activity),
+            HealthDataConfig(id: .appleStandTime, name: "stand_time", displayName: "Stå-tid", displayNameEN: "Stand time", unit: .minute(), isCumulative: true, category: .activity),
+            HealthDataConfig(id: .appleMoveTime, name: "move_time", displayName: "Rörelsestid", displayNameEN: "Movement time", unit: .minute(), isCumulative: true, category: .activity),
+            HealthDataConfig(id: .basalEnergyBurned, name: "basal_energy", displayName: "Basalenergi", displayNameEN: "Basal energy", unit: .kilocalorie(), isCumulative: true, category: .activity),
+            HealthDataConfig(id: .flightsClimbed, name: "flights_climbed", displayName: "Trappor", displayNameEN: "Flights of stairs", unit: .count(), isCumulative: true, category: .activity),
+            HealthDataConfig(id: .appleExerciseTime, name: "daily_quotes", displayName: "Dagliga mål", displayNameEN: "Daily goals", unit: .count(), isCumulative: true, category: .activity),
+            HealthDataConfig(id: .appleExerciseTime, name: "goal_calories", displayName: "Kalorimål", displayNameEN: "Calorie goal", unit: .kilocalorie(), isCumulative: false, category: .activity),
+            HealthDataConfig(id: .appleExerciseTime, name: "goal_steps", displayName: "Stegmål", displayNameEN: "Step goal", unit: .count(), isCumulative: false, category: .activity),
         ])
         
         // MARK: - Distance
         types.append(contentsOf: [
-            HealthDataConfig(id: .distanceWalkingRunning, name: "distance_walking", displayName: "Gång/Löpning", unit: .meter(), isCumulative: true, category: .distance),
-            HealthDataConfig(id: .distanceCycling, name: "distance_cycling", displayName: "Cykling", unit: .meter(), isCumulative: true, category: .distance),
-            HealthDataConfig(id: .distanceSwimming, name: "distance_swimming", displayName: "Simning", unit: .meter(), isCumulative: true, category: .distance),
-            HealthDataConfig(id: .distanceWheelchair, name: "distance_wheelchair", displayName: "Rullstol", unit: .meter(), isCumulative: true, category: .distance),
-            HealthDataConfig(id: .distanceDownhillSnowSports, name: "distance_snow_sports", displayName: "Skidsport", unit: .meter(), isCumulative: true, category: .distance),
-            HealthDataConfig(id: .distanceWalkingRunning, name: "distance_indoor", displayName: "Inomhusgång", unit: .meter(), isCumulative: true, category: .distance),
-            HealthDataConfig(id: .distanceWalkingRunning, name: "distance_treadmill", displayName: "Löpband", unit: .meter(), isCumulative: true, category: .distance),
+            HealthDataConfig(id: .distanceWalkingRunning, name: "distance_walking", displayName: "Gång/Löpning", displayNameEN: "Walking/Running", unit: .meter(), isCumulative: true, category: .distance),
+            HealthDataConfig(id: .distanceCycling, name: "distance_cycling", displayName: "Cykling", displayNameEN: "Cycling", unit: .meter(), isCumulative: true, category: .distance),
+            HealthDataConfig(id: .distanceSwimming, name: "distance_swimming", displayName: "Simning", displayNameEN: "Swimming", unit: .meter(), isCumulative: true, category: .distance),
+            HealthDataConfig(id: .distanceWheelchair, name: "distance_wheelchair", displayName: "Rullstol", displayNameEN: "Wheelchair", unit: .meter(), isCumulative: true, category: .distance),
+            HealthDataConfig(id: .distanceDownhillSnowSports, name: "distance_snow_sports", displayName: "Skidsport", displayNameEN: "Snow sports", unit: .meter(), isCumulative: true, category: .distance),
+            HealthDataConfig(id: .distanceWalkingRunning, name: "distance_indoor", displayName: "Inomhusgång", displayNameEN: "Indoor walk", unit: .meter(), isCumulative: true, category: .distance),
+            HealthDataConfig(id: .distanceWalkingRunning, name: "distance_treadmill", displayName: "Löpband", displayNameEN: "Treadmill", unit: .meter(), isCumulative: true, category: .distance),
         ])
         
         // MARK: - Sport & Performance
         types.append(contentsOf: [
-            HealthDataConfig(id: .vo2Max, name: "vo2_max", displayName: "VO2 Max", unit: .literUnit(with: .milli).unitDivided(by: .gramUnit(with: .kilo)).unitDivided(by: .minute()), isCumulative: false, category: .sport),
-            HealthDataConfig(id: .swimmingStrokeCount, name: "swimming_strokes", displayName: "Simtag", unit: .count(), isCumulative: true, category: .sport),
-            HealthDataConfig(id: .pushCount, name: "push_count", displayName: "Push-antal", unit: .count(), isCumulative: true, category: .sport),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "workouts_count_today", displayName: "Träningspass (antal idag)", unit: .count(), isCumulative: true, category: .sport),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "workouts_minutes_today", displayName: "Träningstid (min idag)", unit: .minute(), isCumulative: true, category: .sport),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "workouts_energy_today", displayName: "Träning (kcal idag)", unit: .kilocalorie(), isCumulative: true, category: .sport),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "workouts_distance_today", displayName: "Träning (meter idag)", unit: .meter(), isCumulative: true, category: .sport),
-            HealthDataConfig(id: .appleExerciseTime, name: "workout_streak", displayName: "Tränings-serie", unit: .count(), isCumulative: false, category: .sport),
-            HealthDataConfig(id: .appleExerciseTime, name: "weekly_exercise_minutes", displayName: "Veckovis träning (min)", unit: .minute(), isCumulative: true, category: .sport),
+            HealthDataConfig(id: .vo2Max, name: "vo2_max", displayName: "VO2 Max", displayNameEN: "VO2 Max", unit: .literUnit(with: .milli).unitDivided(by: .gramUnit(with: .kilo)).unitDivided(by: .minute()), isCumulative: false, category: .sport),
+            HealthDataConfig(id: .swimmingStrokeCount, name: "swimming_strokes", displayName: "Simtag", displayNameEN: "Swim stroke", unit: .count(), isCumulative: true, category: .sport),
+            HealthDataConfig(id: .pushCount, name: "push_count", displayName: "Push-antal", displayNameEN: "Push count", unit: .count(), isCumulative: true, category: .sport),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "workouts_count_today", displayName: "Träningspass (antal idag)", displayNameEN: "Workouts (count today)", unit: .count(), isCumulative: true, category: .sport),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "workouts_minutes_today", displayName: "Träningstid (min idag)", displayNameEN: "Workout time (min today)", unit: .minute(), isCumulative: true, category: .sport),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "workouts_energy_today", displayName: "Träning (kcal idag)", displayNameEN: "Workout (kcal today)", unit: .kilocalorie(), isCumulative: true, category: .sport),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "workouts_distance_today", displayName: "Träning (meter idag)", displayNameEN: "Workout (meters today)", unit: .meter(), isCumulative: true, category: .sport),
+            HealthDataConfig(id: .appleExerciseTime, name: "workout_streak", displayName: "Tränings-serie", displayNameEN: "Workout streak", unit: .count(), isCumulative: false, category: .sport),
+            HealthDataConfig(id: .appleExerciseTime, name: "weekly_exercise_minutes", displayName: "Veckovis träning (min)", displayNameEN: "Weekly exercise (min)", unit: .minute(), isCumulative: true, category: .sport),
         ])
         
         // MARK: - Environment
         types.append(contentsOf: [
-            HealthDataConfig(id: .timeInDaylight, name: "time_in_daylight", displayName: "Tid i dagsljus", unit: .minute(), isCumulative: true, category: .environment),
-            HealthDataConfig(id: .numberOfTimesFallen, name: "times_fallen", displayName: "Fall", unit: .count(), isCumulative: true, category: .environment),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sleeping_wrist_temp", displayName: "Handledstemp (sömn)", unit: .degreeCelsius(), isCumulative: false, category: .environment),
-            HealthDataConfig(id: .environmentalAudioExposure, name: "env_noise", displayName: "Omgivningsljud", unit: .decibelAWeightedSoundPressureLevel(), isCumulative: false, category: .environment),
-            HealthDataConfig(id: .headphoneAudioExposure, name: "headphone_audio", displayName: "Hörlursljud", unit: .decibelAWeightedSoundPressureLevel(), isCumulative: false, category: .environment),
-            HealthDataConfig(id: .uvExposure, name: "uv_exposure", displayName: "UV-exponering", unit: .count(), isCumulative: false, category: .environment),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "ambient_temp", displayName: "Omgivningstemperatur", unit: .degreeCelsius(), isCumulative: false, category: .environment),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "air_pressure", displayName: "Lufttryck", unit: .millimeterOfMercury(), isCumulative: false, category: .environment),
+            HealthDataConfig(id: .timeInDaylight, name: "time_in_daylight", displayName: "Tid i dagsljus", displayNameEN: "Time in daylight", unit: .minute(), isCumulative: true, category: .environment),
+            HealthDataConfig(id: .numberOfTimesFallen, name: "times_fallen", displayName: "Fall", displayNameEN: "Falls", unit: .count(), isCumulative: true, category: .environment),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sleeping_wrist_temp", displayName: "Handledstemp (sömn)", displayNameEN: "Wrist temp (sleep)", unit: .degreeCelsius(), isCumulative: false, category: .environment),
+            HealthDataConfig(id: .environmentalAudioExposure, name: "env_noise", displayName: "Omgivningsljud", displayNameEN: "Ambient noise", unit: .decibelAWeightedSoundPressureLevel(), isCumulative: false, category: .environment),
+            HealthDataConfig(id: .headphoneAudioExposure, name: "headphone_audio", displayName: "Hörlursljud", displayNameEN: "Headphone audio", unit: .decibelAWeightedSoundPressureLevel(), isCumulative: false, category: .environment),
+            HealthDataConfig(id: .uvExposure, name: "uv_exposure", displayName: "UV-exponering", displayNameEN: "UV exposure", unit: .count(), isCumulative: false, category: .environment),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "ambient_temp", displayName: "Omgivningstemperatur", displayNameEN: "Ambient temperature", unit: .degreeCelsius(), isCumulative: false, category: .environment),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "air_pressure", displayName: "Lufttryck", displayNameEN: "Air pressure", unit: .millimeterOfMercury(), isCumulative: false, category: .environment),
         ])
         
         // MARK: - Body
         types.append(contentsOf: [
-            HealthDataConfig(id: .bodyMass, name: "weight", displayName: "Vikt", unit: .gramUnit(with: .kilo), isCumulative: false, category: .body),
-            HealthDataConfig(id: .bodyMassIndex, name: "bmi", displayName: "BMI", unit: .count(), isCumulative: false, category: .body),
-            HealthDataConfig(id: .bodyFatPercentage, name: "body_fat", displayName: "Kroppsfett", unit: .percent(), isCumulative: false, category: .body),
-            HealthDataConfig(id: .leanBodyMass, name: "lean_body_mass", displayName: "Muskelmassa", unit: .gramUnit(with: .kilo), isCumulative: false, category: .body),
-            HealthDataConfig(id: .height, name: "height", displayName: "Längd", unit: .meter(), isCumulative: false, category: .body),
-            HealthDataConfig(id: .waistCircumference, name: "waist_circumference", displayName: "Midjemått", unit: .meter(), isCumulative: false, category: .body),
-            HealthDataConfig(id: .waistCircumference, name: "hip_circumference", displayName: "Höftmått", unit: .meter(), isCumulative: false, category: .body),
-            HealthDataConfig(id: .bodyMass, name: "body_weight_trend", displayName: "Viktkurva", unit: .gramUnit(with: .kilo), isCumulative: false, category: .body),
-            HealthDataConfig(id: .bodyMassIndex, name: "bmr", displayName: "BMR (Basa metabolism)", unit: .kilocalorie(), isCumulative: false, category: .body),
+            HealthDataConfig(id: .bodyMass, name: "weight", displayName: "Vikt", displayNameEN: "Weight", unit: .gramUnit(with: .kilo), isCumulative: false, category: .body),
+            HealthDataConfig(id: .bodyMassIndex, name: "bmi", displayName: "BMI", displayNameEN: "BMI", unit: .count(), isCumulative: false, category: .body),
+            HealthDataConfig(id: .bodyFatPercentage, name: "body_fat", displayName: "Kroppsfett", displayNameEN: "Body fat", unit: .percent(), isCumulative: false, category: .body),
+            HealthDataConfig(id: .leanBodyMass, name: "lean_body_mass", displayName: "Muskelmassa", displayNameEN: "Muscle mass", unit: .gramUnit(with: .kilo), isCumulative: false, category: .body),
+            HealthDataConfig(id: .height, name: "height", displayName: "Längd", displayNameEN: "Height", unit: .meter(), isCumulative: false, category: .body),
+            HealthDataConfig(id: .waistCircumference, name: "waist_circumference", displayName: "Midjemått", displayNameEN: "Waist circumference", unit: .meter(), isCumulative: false, category: .body),
+            HealthDataConfig(id: .waistCircumference, name: "hip_circumference", displayName: "Höftmått", displayNameEN: "Hip circumference", unit: .meter(), isCumulative: false, category: .body),
+            HealthDataConfig(id: .bodyMass, name: "body_weight_trend", displayName: "Viktkurva", displayNameEN: "Weight trend", unit: .gramUnit(with: .kilo), isCumulative: false, category: .body),
+            HealthDataConfig(id: .bodyMassIndex, name: "bmr", displayName: "BMR (Basa metabolism)", displayNameEN: "BMR (Basal metabolism)", unit: .kilocalorie(), isCumulative: false, category: .body),
         ])
         
         // MARK: - Vitals
         types.append(contentsOf: [
-            HealthDataConfig(id: .heartRate, name: "heart_rate", displayName: "Puls", unit: .count().unitDivided(by: .minute()), isCumulative: false, category: .vitals),
-            HealthDataConfig(id: .restingHeartRate, name: "resting_heart_rate", displayName: "Vilopuls", unit: .count().unitDivided(by: .minute()), isCumulative: false, category: .vitals),
-            HealthDataConfig(id: .walkingHeartRateAverage, name: "walking_hr_avg", displayName: "Puls (gång)", unit: .count().unitDivided(by: .minute()), isCumulative: false, category: .vitals),
-            HealthDataConfig(id: .heartRateVariabilitySDNN, name: "hrv_sdnn", displayName: "HRV", unit: .secondUnit(with: .milli), isCumulative: false, category: .vitals),
-            HealthDataConfig(id: .oxygenSaturation, name: "spo2", displayName: "Syremättnad", unit: .percent(), isCumulative: false, category: .vitals),
-            HealthDataConfig(id: .bodyTemperature, name: "body_temp", displayName: "Kroppstemperatur", unit: .degreeCelsius(), isCumulative: false, category: .vitals),
-            HealthDataConfig(id: .respiratoryRate, name: "respiratory_rate", displayName: "Andningsfrekvens", unit: .count().unitDivided(by: .minute()), isCumulative: false, category: .vitals),
-            HealthDataConfig(id: .bloodPressureSystolic, name: "bp_systolic", displayName: "Blodtryck (sys)", unit: .millimeterOfMercury(), isCumulative: false, category: .vitals),
-            HealthDataConfig(id: .bloodPressureDiastolic, name: "bp_diastolic", displayName: "Blodtryck (dia)", unit: .millimeterOfMercury(), isCumulative: false, category: .vitals),
-            HealthDataConfig(id: .bloodGlucose, name: "blood_glucose", displayName: "Blodsocker", unit: .moleUnit(with: .milli, molarMass: HKUnitMolarMassBloodGlucose).unitDivided(by: .liter()), isCumulative: false, category: .vitals),
-            HealthDataConfig(id: .bloodPressureSystolic, name: "blood_pressure_avg", displayName: "Blodtryck (medel)", unit: .millimeterOfMercury(), isCumulative: false, category: .vitals),
-            HealthDataConfig(id: .heartRateVariabilitySDNN, name: "hrv_rmssd", displayName: "HRV (RMSSD)", unit: .secondUnit(with: .milli), isCumulative: false, category: .vitals),
-            HealthDataConfig(id: .oxygenSaturation, name: "oxygen_saturation_trend", displayName: "Syremättnad (trend)", unit: .percent(), isCumulative: false, category: .vitals),
-            HealthDataConfig(id: .bodyTemperature, name: "wrist_temperature", displayName: "Handledstemperatur", unit: .degreeCelsius(), isCumulative: false, category: .vitals),
+            HealthDataConfig(id: .heartRate, name: "heart_rate", displayName: "Puls", displayNameEN: "Heart rate", unit: .count().unitDivided(by: .minute()), isCumulative: false, category: .vitals),
+            HealthDataConfig(id: .restingHeartRate, name: "resting_heart_rate", displayName: "Vilopuls", displayNameEN: "Resting heart rate", unit: .count().unitDivided(by: .minute()), isCumulative: false, category: .vitals),
+            HealthDataConfig(id: .walkingHeartRateAverage, name: "walking_hr_avg", displayName: "Puls (gång)", displayNameEN: "Heart rate (walk)", unit: .count().unitDivided(by: .minute()), isCumulative: false, category: .vitals),
+            HealthDataConfig(id: .heartRateVariabilitySDNN, name: "hrv_sdnn", displayName: "HRV", displayNameEN: "HRV", unit: .secondUnit(with: .milli), isCumulative: false, category: .vitals),
+            HealthDataConfig(id: .oxygenSaturation, name: "spo2", displayName: "Syremättnad", displayNameEN: "Oxygen saturation", unit: .percent(), isCumulative: false, category: .vitals),
+            HealthDataConfig(id: .bodyTemperature, name: "body_temp", displayName: "Kroppstemperatur", displayNameEN: "Body temperature", unit: .degreeCelsius(), isCumulative: false, category: .vitals),
+            HealthDataConfig(id: .respiratoryRate, name: "respiratory_rate", displayName: "Andningsfrekvens", displayNameEN: "Respiratory rate", unit: .count().unitDivided(by: .minute()), isCumulative: false, category: .vitals),
+            HealthDataConfig(id: .bloodPressureSystolic, name: "bp_systolic", displayName: "Blodtryck (sys)", displayNameEN: "Blood pressure (systolic)", unit: .millimeterOfMercury(), isCumulative: false, category: .vitals),
+            HealthDataConfig(id: .bloodPressureDiastolic, name: "bp_diastolic", displayName: "Blodtryck (dia)", displayNameEN: "Blood pressure (diastolic)", unit: .millimeterOfMercury(), isCumulative: false, category: .vitals),
+            HealthDataConfig(id: .bloodGlucose, name: "blood_glucose", displayName: "Blodsocker", displayNameEN: "Blood glucose", unit: .moleUnit(with: .milli, molarMass: HKUnitMolarMassBloodGlucose).unitDivided(by: .liter()), isCumulative: false, category: .vitals),
+            HealthDataConfig(id: .bloodPressureSystolic, name: "blood_pressure_avg", displayName: "Blodtryck (medel)", displayNameEN: "Blood pressure (mean)", unit: .millimeterOfMercury(), isCumulative: false, category: .vitals),
+            HealthDataConfig(id: .heartRateVariabilitySDNN, name: "hrv_rmssd", displayName: "HRV (RMSSD)", displayNameEN: "HRV (RMSSD)", unit: .secondUnit(with: .milli), isCumulative: false, category: .vitals),
+            HealthDataConfig(id: .oxygenSaturation, name: "oxygen_saturation_trend", displayName: "Syremättnad (trend)", displayNameEN: "Oxygen saturation (trend)", unit: .percent(), isCumulative: false, category: .vitals),
+            HealthDataConfig(id: .bodyTemperature, name: "wrist_temperature", displayName: "Handledstemperatur", displayNameEN: "Wrist temperature", unit: .degreeCelsius(), isCumulative: false, category: .vitals),
         ])
         
         // MARK: - Mobility
         types.append(contentsOf: [
-            HealthDataConfig(id: .appleWalkingSteadiness, name: "walking_steadiness", displayName: "Gångstabilitet", unit: .percent(), isCumulative: false, category: .mobility),
-            HealthDataConfig(id: .walkingSpeed, name: "walking_speed", displayName: "Gånghastighet", unit: .meter().unitDivided(by: .second()), isCumulative: false, category: .mobility),
-            HealthDataConfig(id: .walkingStepLength, name: "step_length", displayName: "Steglängd", unit: .meter(), isCumulative: false, category: .mobility),
-            HealthDataConfig(id: .walkingAsymmetryPercentage, name: "walking_asymmetry", displayName: "Gång-asymmetri", unit: .percent(), isCumulative: false, category: .mobility),
-            HealthDataConfig(id: .walkingDoubleSupportPercentage, name: "double_support", displayName: "Dubbel-stöd", unit: .percent(), isCumulative: false, category: .mobility),
-            HealthDataConfig(id: .stairAscentSpeed, name: "stair_ascent", displayName: "Trappuppgång", unit: .meter().unitDivided(by: .second()), isCumulative: false, category: .mobility),
-            HealthDataConfig(id: .stairDescentSpeed, name: "stair_descent", displayName: "Trappnedgång", unit: .meter().unitDivided(by: .second()), isCumulative: false, category: .mobility),
-            HealthDataConfig(id: .appleWalkingSteadiness, name: "balance_score", displayName: "Balans-poäng", unit: .count(), isCumulative: false, category: .mobility),
-            HealthDataConfig(id: .appleWalkingSteadiness, name: "fall_risk", displayName: "Fall-risk", unit: .percent(), isCumulative: false, category: .mobility),
+            HealthDataConfig(id: .appleWalkingSteadiness, name: "walking_steadiness", displayName: "Gångstabilitet", displayNameEN: "Walking steadiness", unit: .percent(), isCumulative: false, category: .mobility),
+            HealthDataConfig(id: .walkingSpeed, name: "walking_speed", displayName: "Gånghastighet", displayNameEN: "Walking speed", unit: .meter().unitDivided(by: .second()), isCumulative: false, category: .mobility),
+            HealthDataConfig(id: .walkingStepLength, name: "step_length", displayName: "Steglängd", displayNameEN: "Step length", unit: .meter(), isCumulative: false, category: .mobility),
+            HealthDataConfig(id: .walkingAsymmetryPercentage, name: "walking_asymmetry", displayName: "Gång-asymmetri", displayNameEN: "Walking asymmetry", unit: .percent(), isCumulative: false, category: .mobility),
+            HealthDataConfig(id: .walkingDoubleSupportPercentage, name: "double_support", displayName: "Dubbel-stöd", displayNameEN: "Double support", unit: .percent(), isCumulative: false, category: .mobility),
+            HealthDataConfig(id: .stairAscentSpeed, name: "stair_ascent", displayName: "Trappuppgång", displayNameEN: "Flights climbed", unit: .meter().unitDivided(by: .second()), isCumulative: false, category: .mobility),
+            HealthDataConfig(id: .stairDescentSpeed, name: "stair_descent", displayName: "Trappnedgång", displayNameEN: "Flights descended", unit: .meter().unitDivided(by: .second()), isCumulative: false, category: .mobility),
+            HealthDataConfig(id: .appleWalkingSteadiness, name: "balance_score", displayName: "Balans-poäng", displayNameEN: "Balance score", unit: .count(), isCumulative: false, category: .mobility),
+            HealthDataConfig(id: .appleWalkingSteadiness, name: "fall_risk", displayName: "Fall-risk", displayNameEN: "Fall risk", unit: .percent(), isCumulative: false, category: .mobility),
         ])
         
         // MARK: - Running
         types.append(contentsOf: [
-            HealthDataConfig(id: .runningPower, name: "running_power", displayName: "Löpeffekt", unit: .watt(), isCumulative: false, category: .running),
-            HealthDataConfig(id: .runningSpeed, name: "running_speed", displayName: "Löphastighet", unit: .meter().unitDivided(by: .second()), isCumulative: false, category: .running),
-            HealthDataConfig(id: .runningGroundContactTime, name: "ground_contact_time", displayName: "Markkontakt", unit: .secondUnit(with: .milli), isCumulative: false, category: .running),
-            HealthDataConfig(id: .runningVerticalOscillation, name: "vertical_oscillation", displayName: "Vertikal rörelse", unit: .meterUnit(with: .centi), isCumulative: false, category: .running),
-            HealthDataConfig(id: .runningStrideLength, name: "stride_length", displayName: "Stridlängd", unit: .meter(), isCumulative: false, category: .running),
-            HealthDataConfig(id: .runningPower, name: "running_cadence", displayName: "Kadens", unit: .count().unitDivided(by: .minute()), isCumulative: false, category: .running),
-            HealthDataConfig(id: .runningSpeed, name: "running_vertical_ratio", displayName: "Vertikal ratio", unit: .percent(), isCumulative: false, category: .running),
+            HealthDataConfig(id: .runningPower, name: "running_power", displayName: "Löpeffekt", displayNameEN: "Running power", unit: .watt(), isCumulative: false, category: .running),
+            HealthDataConfig(id: .runningSpeed, name: "running_speed", displayName: "Löphastighet", displayNameEN: "Running speed", unit: .meter().unitDivided(by: .second()), isCumulative: false, category: .running),
+            HealthDataConfig(id: .runningGroundContactTime, name: "ground_contact_time", displayName: "Markkontakt", displayNameEN: "Ground contact", unit: .secondUnit(with: .milli), isCumulative: false, category: .running),
+            HealthDataConfig(id: .runningVerticalOscillation, name: "vertical_oscillation", displayName: "Vertikal rörelse", displayNameEN: "Vertical movement", unit: .meterUnit(with: .centi), isCumulative: false, category: .running),
+            HealthDataConfig(id: .runningStrideLength, name: "stride_length", displayName: "Stridlängd", displayNameEN: "Stroll distance", unit: .meter(), isCumulative: false, category: .running),
+            HealthDataConfig(id: .runningPower, name: "running_cadence", displayName: "Kadens", displayNameEN: "Cadence", unit: .count().unitDivided(by: .minute()), isCumulative: false, category: .running),
+            HealthDataConfig(id: .runningSpeed, name: "running_vertical_ratio", displayName: "Vertikal ratio", displayNameEN: "Vertical ratio", unit: .percent(), isCumulative: false, category: .running),
         ])
         
         // MARK: - Heart Health
         types.append(contentsOf: [
-            HealthDataConfig(id: .heartRate, name: "heart_rate_max", displayName: "Max puls", unit: .count().unitDivided(by: .minute()), isCumulative: false, category: .heart),
-            HealthDataConfig(id: .heartRate, name: "heart_rate_min", displayName: "Min puls", unit: .count().unitDivided(by: .minute()), isCumulative: false, category: .heart),
-            HealthDataConfig(id: .heartRate, name: "heart_rate_avg", displayName: "Genomsnittlig puls", unit: .count().unitDivided(by: .minute()), isCumulative: false, category: .heart),
-            HealthDataConfig(id: .heartRateVariabilitySDNN, name: "heart_rate_recovery", displayName: "Puls-återhämtning", unit: .count().unitDivided(by: .minute()), isCumulative: false, category: .heart),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "cardio_fitness", displayName: "Kardio-fitness", unit: .count(), isCumulative: false, category: .heart),
-            HealthDataConfig(id: .heartRate, name: "low_heart_rate_events", displayName: "Låga pulshändelser", unit: .count(), isCumulative: true, category: .heart),
-            HealthDataConfig(id: .heartRate, name: "high_heart_rate_events", displayName: "Höga pulshändelser", unit: .count(), isCumulative: true, category: .heart),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "heart_arrhythmia", displayName: "Hjärtrytm-störning", unit: .count(), isCumulative: false, category: .heart),
+            HealthDataConfig(id: .heartRate, name: "heart_rate_max", displayName: "Max puls", displayNameEN: "Max heart rate", unit: .count().unitDivided(by: .minute()), isCumulative: false, category: .heart),
+            HealthDataConfig(id: .heartRate, name: "heart_rate_min", displayName: "Min puls", displayNameEN: "Min heart rate", unit: .count().unitDivided(by: .minute()), isCumulative: false, category: .heart),
+            HealthDataConfig(id: .heartRate, name: "heart_rate_avg", displayName: "Genomsnittlig puls", displayNameEN: "Average heart rate", unit: .count().unitDivided(by: .minute()), isCumulative: false, category: .heart),
+            HealthDataConfig(id: .heartRateVariabilitySDNN, name: "heart_rate_recovery", displayName: "Puls-återhämtning", displayNameEN: "Heart rate recovery", unit: .count().unitDivided(by: .minute()), isCumulative: false, category: .heart),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "cardio_fitness", displayName: "Kardio-fitness", displayNameEN: "Cardio fitness", unit: .count(), isCumulative: false, category: .heart),
+            HealthDataConfig(id: .heartRate, name: "low_heart_rate_events", displayName: "Låga pulshändelser", displayNameEN: "Low heart rate events", unit: .count(), isCumulative: true, category: .heart),
+            HealthDataConfig(id: .heartRate, name: "high_heart_rate_events", displayName: "Höga pulshändelser", displayNameEN: "High heart rate events", unit: .count(), isCumulative: true, category: .heart),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "heart_arrhythmia", displayName: "Hjärtrytm-störning", displayNameEN: "Heart rhythm disturbance", unit: .count(), isCumulative: false, category: .heart),
         ])
         
         // MARK: - Hearing
         types.append(contentsOf: [
-            HealthDataConfig(id: .environmentalAudioExposure, name: "headphone_exposure", displayName: "Hörlursexponering", unit: .percent(), isCumulative: true, category: .hearing),
-            HealthDataConfig(id: .environmentalAudioExposure, name: "noise_exposure_level", displayName: "Bullerexponering", unit: .percent(), isCumulative: true, category: .hearing),
-            HealthDataConfig(id: .environmentalAudioExposure, name: "hearing_health", displayName: "Hälso-hörsel", unit: .percent(), isCumulative: false, category: .hearing),
+            HealthDataConfig(id: .environmentalAudioExposure, name: "headphone_exposure", displayName: "Hörlursexponering", displayNameEN: "Headphone exposure", unit: .percent(), isCumulative: true, category: .hearing),
+            HealthDataConfig(id: .environmentalAudioExposure, name: "noise_exposure_level", displayName: "Bullerexponering", displayNameEN: "Noise exposure", unit: .percent(), isCumulative: true, category: .hearing),
+            HealthDataConfig(id: .environmentalAudioExposure, name: "hearing_health", displayName: "Hälso-hörsel", displayNameEN: "Hearing health", unit: .percent(), isCumulative: false, category: .hearing),
         ])
         
         // MARK: - Mind & Mental Health
         types.append(contentsOf: [
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "mindful_minutes", displayName: "Mindfulness (minuter)", unit: .minute(), isCumulative: true, category: .mind),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "mood", displayName: "Stämning", unit: .count(), isCumulative: false, category: .mind),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "stress_level", displayName: "Stress-nivå", unit: .count(), isCumulative: false, category: .mind),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "energy_level", displayName: "Energinivå", unit: .count(), isCumulative: false, category: .mind),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "focus_time", displayName: "Fokus-tid", unit: .minute(), isCumulative: true, category: .mind),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "mindful_minutes", displayName: "Mindfulness (minuter)", displayNameEN: "Mindfulness (minutes)", unit: .minute(), isCumulative: true, category: .mind),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "mood", displayName: "Stämning", displayNameEN: "Mood", unit: .count(), isCumulative: false, category: .mind),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "stress_level", displayName: "Stress-nivå", displayNameEN: "Stress level", unit: .count(), isCumulative: false, category: .mind),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "energy_level", displayName: "Energinivå", displayNameEN: "Energy level", unit: .count(), isCumulative: false, category: .mind),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "focus_time", displayName: "Fokus-tid", displayNameEN: "Focus time", unit: .minute(), isCumulative: true, category: .mind),
         ])
         
         // MARK: - Nutrition
         types.append(contentsOf: [
-            HealthDataConfig(id: .dietaryEnergyConsumed, name: "calories_consumed", displayName: "Kalorier intag", unit: .kilocalorie(), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryProtein, name: "protein", displayName: "Protein", unit: .gram(), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryCarbohydrates, name: "carbs", displayName: "Kolhydrater", unit: .gram(), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryFiber, name: "fiber", displayName: "Fiber", unit: .gram(), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietarySugar, name: "sugar", displayName: "Socker", unit: .gram(), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryFatTotal, name: "fat_total", displayName: "Fett", unit: .gram(), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryFatSaturated, name: "fat_saturated", displayName: "Mättat fett", unit: .gram(), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryCholesterol, name: "cholesterol", displayName: "Kolesterol", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietarySodium, name: "sodium", displayName: "Natrium", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryWater, name: "water", displayName: "Vatten", unit: .liter(), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryCaffeine, name: "caffeine", displayName: "Koffein", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryVitaminC, name: "vitamin_c", displayName: "Vitamin C", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryVitaminD, name: "vitamin_d", displayName: "Vitamin D", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryCalcium, name: "calcium", displayName: "Kalcium", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryIron, name: "iron", displayName: "Järn", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryPotassium, name: "potassium", displayName: "Kalium", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryEnergyConsumed, name: "meal_count", displayName: "Antal måltider", unit: .count(), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryEnergyConsumed, name: "snack_count", displayName: "Antal mellanmål", unit: .count(), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryFatMonounsaturated, name: "fat_monounsaturated", displayName: "Enkelomättat fett", unit: .gram(), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryFatPolyunsaturated, name: "fat_polyunsaturated", displayName: "Fleromättat fett", unit: .gram(), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryVitaminA, name: "beta_carotene", displayName: "Beta-karoten", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryVitaminE, name: "vitamin_e", displayName: "Vitamin E", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryVitaminK, name: "vitamin_k", displayName: "Vitamin K", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryThiamin, name: "thiamin", displayName: "Tiamin (B1)", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryRiboflavin, name: "riboflavin", displayName: "Riboflavin (B2)", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryNiacin, name: "niacin", displayName: "Niacin", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryVitaminB6, name: "vitamin_b6", displayName: "Vitamin B6", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryFolate, name: "folate", displayName: "Folat", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryVitaminB12, name: "vitamin_b12", displayName: "Vitamin B12", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryBiotin, name: "biotin", displayName: "Biotin", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryPantothenicAcid, name: "pantothenic_acid", displayName: "Pantotensyra", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryPhosphorus, name: "phosphorus", displayName: "Fosfor", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryIodine, name: "iodine", displayName: "Jod", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryMagnesium, name: "magnesium", displayName: "Magnesium", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryZinc, name: "zinc", displayName: "Zink", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietarySelenium, name: "selenium", displayName: "Selen", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryCopper, name: "copper", displayName: "Koppar", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryManganese, name: "manganese", displayName: "Mangan", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryChromium, name: "chromium", displayName: "Krom", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryMolybdenum, name: "molybdenum", displayName: "Molybden", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
-            HealthDataConfig(id: .dietaryChloride, name: "chloride", displayName: "Klorid", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryEnergyConsumed, name: "calories_consumed", displayName: "Kalorier intag", displayNameEN: "Calories intake", unit: .kilocalorie(), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryProtein, name: "protein", displayName: "Protein", displayNameEN: "Protein", unit: .gram(), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryCarbohydrates, name: "carbs", displayName: "Kolhydrater", displayNameEN: "Carbohydrates", unit: .gram(), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryFiber, name: "fiber", displayName: "Fiber", displayNameEN: "Fiber", unit: .gram(), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietarySugar, name: "sugar", displayName: "Socker", displayNameEN: "Sugar", unit: .gram(), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryFatTotal, name: "fat_total", displayName: "Fett", displayNameEN: "Fat", unit: .gram(), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryFatSaturated, name: "fat_saturated", displayName: "Mättat fett", displayNameEN: "Saturated fat", unit: .gram(), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryCholesterol, name: "cholesterol", displayName: "Kolesterol", displayNameEN: "Cholesterol", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietarySodium, name: "sodium", displayName: "Natrium", displayNameEN: "Sodium", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryWater, name: "water", displayName: "Vatten", displayNameEN: "Water", unit: .liter(), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryCaffeine, name: "caffeine", displayName: "Koffein", displayNameEN: "Caffeine", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryVitaminC, name: "vitamin_c", displayName: "Vitamin C", displayNameEN: "Vitamin C", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryVitaminD, name: "vitamin_d", displayName: "Vitamin D", displayNameEN: "Vitamin D", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryCalcium, name: "calcium", displayName: "Kalcium", displayNameEN: "Calcium", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryIron, name: "iron", displayName: "Järn", displayNameEN: "Iron", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryPotassium, name: "potassium", displayName: "Kalium", displayNameEN: "Potassium", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryEnergyConsumed, name: "meal_count", displayName: "Antal måltider", displayNameEN: "Meal count", unit: .count(), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryEnergyConsumed, name: "snack_count", displayName: "Antal mellanmål", displayNameEN: "Snack count", unit: .count(), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryFatMonounsaturated, name: "fat_monounsaturated", displayName: "Enkelomättat fett", displayNameEN: "Monounsaturated fat", unit: .gram(), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryFatPolyunsaturated, name: "fat_polyunsaturated", displayName: "Fleromättat fett", displayNameEN: "Polyunsaturated fat", unit: .gram(), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryVitaminA, name: "beta_carotene", displayName: "Beta-karoten", displayNameEN: "Beta carotene", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryVitaminE, name: "vitamin_e", displayName: "Vitamin E", displayNameEN: "Vitamin E", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryVitaminK, name: "vitamin_k", displayName: "Vitamin K", displayNameEN: "Vitamin K", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryThiamin, name: "thiamin", displayName: "Tiamin (B1)", displayNameEN: "Thiamin (B1)", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryRiboflavin, name: "riboflavin", displayName: "Riboflavin (B2)", displayNameEN: "Riboflavin (B2)", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryNiacin, name: "niacin", displayName: "Niacin", displayNameEN: "Niacin", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryVitaminB6, name: "vitamin_b6", displayName: "Vitamin B6", displayNameEN: "Vitamin B6", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryFolate, name: "folate", displayName: "Folat", displayNameEN: "Folate", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryVitaminB12, name: "vitamin_b12", displayName: "Vitamin B12", displayNameEN: "Vitamin B12", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryBiotin, name: "biotin", displayName: "Biotin", displayNameEN: "Biotin", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryPantothenicAcid, name: "pantothenic_acid", displayName: "Pantotensyra", displayNameEN: "Pantothenic acid", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryPhosphorus, name: "phosphorus", displayName: "Fosfor", displayNameEN: "Phosphorus", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryIodine, name: "iodine", displayName: "Jod", displayNameEN: "Iodine", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryMagnesium, name: "magnesium", displayName: "Magnesium", displayNameEN: "Magnesium", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryZinc, name: "zinc", displayName: "Zink", displayNameEN: "Zinc", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietarySelenium, name: "selenium", displayName: "Selen", displayNameEN: "Selenium", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryCopper, name: "copper", displayName: "Koppar", displayNameEN: "Copper", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryManganese, name: "manganese", displayName: "Mangan", displayNameEN: "Manganese", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryChromium, name: "chromium", displayName: "Krom", displayNameEN: "Chromium", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryMolybdenum, name: "molybdenum", displayName: "Molybden", displayNameEN: "Molybdenum", unit: .gramUnit(with: .micro), isCumulative: true, category: .nutrition),
+            HealthDataConfig(id: .dietaryChloride, name: "chloride", displayName: "Klorid", displayNameEN: "Chloride", unit: .gramUnit(with: .milli), isCumulative: true, category: .nutrition),
         ])
         
         // MARK: - Medical
         types.append(contentsOf: [
-            HealthDataConfig(id: .peakExpiratoryFlowRate, name: "peak_flow", displayName: "Peak Flow", unit: .liter().unitDivided(by: .minute()), isCumulative: false, category: .medical),
-            HealthDataConfig(id: .forcedExpiratoryVolume1, name: "fev1", displayName: "FEV1", unit: .liter(), isCumulative: false, category: .medical),
-            HealthDataConfig(id: .forcedVitalCapacity, name: "fvc", displayName: "FVC", unit: .liter(), isCumulative: false, category: .medical),
-            HealthDataConfig(id: .inhalerUsage, name: "inhaler_usage", displayName: "Inhalator-användning", unit: .count(), isCumulative: true, category: .medical),
-            HealthDataConfig(id: .insulinDelivery, name: "insulin_delivery", displayName: "Insulin", unit: .internationalUnit(), isCumulative: true, category: .medical),
-            HealthDataConfig(id: .bloodGlucose, name: "insulin_sensitivity", displayName: "Insulin-känslighet", unit: .gramUnit(with: .milli), isCumulative: false, category: .medical),
-            HealthDataConfig(id: .bloodGlucose, name: "time_in_range", displayName: "Tid inom mål", unit: .percent(), isCumulative: true, category: .medical),
+            HealthDataConfig(id: .peakExpiratoryFlowRate, name: "peak_flow", displayName: "Peak Flow", displayNameEN: "Peak Flow", unit: .liter().unitDivided(by: .minute()), isCumulative: false, category: .medical),
+            HealthDataConfig(id: .forcedExpiratoryVolume1, name: "fev1", displayName: "FEV1", displayNameEN: "FEV1", unit: .liter(), isCumulative: false, category: .medical),
+            HealthDataConfig(id: .forcedVitalCapacity, name: "fvc", displayName: "FVC", displayNameEN: "FVC", unit: .liter(), isCumulative: false, category: .medical),
+            HealthDataConfig(id: .inhalerUsage, name: "inhaler_usage", displayName: "Inhalator-användning", displayNameEN: "Inhaler usage", unit: .count(), isCumulative: true, category: .medical),
+            HealthDataConfig(id: .insulinDelivery, name: "insulin_delivery", displayName: "Insulin", displayNameEN: "Insulin", unit: .internationalUnit(), isCumulative: true, category: .medical),
+            HealthDataConfig(id: .bloodGlucose, name: "insulin_sensitivity", displayName: "Insulin-känslighet", displayNameEN: "Insulin sensitivity", unit: .gramUnit(with: .milli), isCumulative: false, category: .medical),
+            HealthDataConfig(id: .bloodGlucose, name: "time_in_range", displayName: "Tid inom mål", displayNameEN: "Time in range", unit: .percent(), isCumulative: true, category: .medical),
         ])
         
         // MARK: - Reproductive Health
         types.append(contentsOf: [
-            HealthDataConfig(id: .bodyTemperature, name: "basal_body_temp", displayName: "Basal kroppstemperatur", unit: .degreeCelsius(), isCumulative: false, category: .reproductive),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "menstrual_cycle", displayName: "Menstruationscykel", unit: .day(), isCumulative: false, category: .reproductive),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "ovulation_date", displayName: "Ägglossning", unit: .day(), isCumulative: false, category: .reproductive),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "menstrual_flow", displayName: "Menstruationsflöde", unit: .count(), isCumulative: false, category: .reproductive),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sexual_activity", displayName: "Sexuell aktivitet", unit: .count(), isCumulative: true, category: .reproductive),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "pregnancy", displayName: "Graviditet", unit: .count(), isCumulative: false, category: .reproductive),
+            HealthDataConfig(id: .bodyTemperature, name: "basal_body_temp", displayName: "Basal kroppstemperatur", displayNameEN: "Basal body temperature", unit: .degreeCelsius(), isCumulative: false, category: .reproductive),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "menstrual_cycle", displayName: "Menstruationscykel", displayNameEN: "Menstrual cycle", unit: .day(), isCumulative: false, category: .reproductive),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "ovulation_date", displayName: "Ägglossning", displayNameEN: "Ovulation", unit: .day(), isCumulative: false, category: .reproductive),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "menstrual_flow", displayName: "Menstruationsflöde", displayNameEN: "Menstrual flow", unit: .count(), isCumulative: false, category: .reproductive),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sexual_activity", displayName: "Sexuell aktivitet", displayNameEN: "Sexual activity", unit: .count(), isCumulative: true, category: .reproductive),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "pregnancy", displayName: "Graviditet", displayNameEN: "Pregnancy", unit: .count(), isCumulative: false, category: .reproductive),
         ])
         
         // MARK: - Habits
         types.append(contentsOf: [
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "handwashing_count", displayName: "Handtvätt (antal)", unit: .count(), isCumulative: true, category: .habits),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "teeth_brushing", displayName: "Tandborstning", unit: .count(), isCumulative: true, category: .habits),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "medication_reminder", displayName: "Medicin-påminnelse", unit: .count(), isCumulative: true, category: .habits),
-            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sleep_schedule", displayName: "Sömn-schema", unit: .count(), isCumulative: true, category: .habits),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "handwashing_count", displayName: "Handtvätt (antal)", displayNameEN: "Handwashing (count)", unit: .count(), isCumulative: true, category: .habits),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "teeth_brushing", displayName: "Tandborstning", displayNameEN: "Teeth brushing", unit: .count(), isCumulative: true, category: .habits),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "medication_reminder", displayName: "Medicin-påminnelse", displayNameEN: "Medication reminder", unit: .count(), isCumulative: true, category: .habits),
+            HealthDataConfig(id: .appleSleepingWristTemperature, name: "sleep_schedule", displayName: "Sömn-schema", displayNameEN: "Sleep schedule", unit: .count(), isCumulative: true, category: .habits),
         ])
         
         return types
@@ -387,6 +418,14 @@ enum LogFilter: String, CaseIterable {
     case all = "Alla"
     case errors = "Endast fel"
     case success = "Framgångsrika"
+
+    var displayName: String {
+        switch self {
+        case .all: return L.t("Alla", "All")
+        case .errors: return L.t("Endast fel", "Errors only")
+        case .success: return L.t("Framgångsrika", "Successful")
+        }
+    }
 }
 
 struct HAServerConfig: Identifiable, Equatable, Sendable {
@@ -442,17 +481,17 @@ enum HealthExportError: LocalizedError, Equatable, Sendable {
     var errorDescription: String? {
         switch self {
         case .noServersConfigured:
-            return "Inga servrar konfigurerade"
+            return L.t("Inga servrar konfigurerade", "No servers configured")
         case .healthKitUnauthorized:
-            return "HealthKit-behörighet saknas"
+            return L.t("HealthKit-behörighet saknas", "HealthKit authorization missing")
         case .networkFailure(let msg):
-            return "Nätverksfel: \(msg)"
+            return L.t("Nätverksfel: \(msg)", "Network error: \(msg)")
         case .invalidResponse(let code):
-            return "Ogiltig svarskod: \(code)"
+            return L.t("Ogiltig svarskod: \(code)", "Invalid response code: \(code)")
         case .noData(let metric):
-            return "Ingen data tillgänglig för: \(metric)"
+            return L.t("Ingen data tillgänglig för: \(metric)", "No data available for: \(metric)")
         case .encodingError:
-            return "Kodningsfel"
+            return L.t("Kodningsfel", "Encoding error")
         }
     }
 }
@@ -503,7 +542,194 @@ enum AppStorageKey: String, Sendable {
     case lastExportCount = "last_export_count"
     case theme = "app_theme"
     case showLastValues = "show_last_values"
+    case appLanguage = "app_language"
 }
+
+// MARK: - I18n (svenska = grundspråk, engelska = uppslag)
+
+/// Appens språk. Spara råvärdet i UserDefaults ("sv"/"en"); vyerna håller ett
+/// @AppStorage mot samma nyckel så att byte triggar omritning direkt.
+enum AppLanguage: String, CaseIterable, Identifiable {
+    case svenska = "sv"
+    case english = "en"
+
+    var id: String { rawValue }
+
+    /// Visas aldrig i UI (väljaren har hårdkodade etiketter) – bara för logik.
+    var isEnglish: Bool { self == .english }
+}
+
+/// Lättvikts-översättning: svenska strängar är identiteten, engelska slås
+/// upp med L.t/L.f/L.metric. Inga .strings-filer behövs.
+enum L {
+    static var lang: AppLanguage {
+        AppLanguage(rawValue: UserDefaults.standard.string(forKey: AppStorageKey.appLanguage.rawValue) ?? "") ?? .svenska
+    }
+
+    /// Rak översättning av en fast text.
+    static func t(_ sv: String, _ en: String) -> String {
+        lang == .english ? en : sv
+    }
+}
+
+// MARK: - I18n: engelska namn för HealthKit-datapunkter
+
+private let metricNamesEN: [String: String] = [
+    "Ägglossning": "Ovulation",
+    "Aktiv energi": "Active energy",
+    "Andningsfrekvens": "Respiratory rate",
+    "Antal måltider": "Meal count",
+    "Antal mellanmål": "Snack count",
+    "Balans-poäng": "Balance score",
+    "Basalenergi": "Basal energy",
+    "Basal kroppstemperatur": "Basal body temperature",
+    "Beta-karoten": "Beta carotene",
+    "Biotin": "Biotin",
+    "Blodsocker": "Blood glucose",
+    "Blodtryck (dia)": "Blood pressure (diastolic)",
+    "Blodtryck (medel)": "Blood pressure (mean)",
+    "Blodtryck (sys)": "Blood pressure (systolic)",
+    "BMI": "BMI",
+    "BMR (Basa metabolism)": "BMR (Basal metabolism)",
+    "Bullerexponering": "Noise exposure",
+    "Cykling": "Cycling",
+    "Dagliga mål": "Daily goals",
+    "Dubbel-stöd": "Double support",
+    "Energinivå": "Energy level",
+    "Enkelomättat fett": "Monounsaturated fat",
+    "Fall": "Falls",
+    "Fall-risk": "Fall risk",
+    "Fett": "Fat",
+    "FEV1": "FEV1",
+    "Fiber": "Fiber",
+    "Fleromättat fett": "Polyunsaturated fat",
+    "Fokus-tid": "Focus time",
+    "Folat": "Folate",
+    "Fosfor": "Phosphorus",
+    "FVC": "FVC",
+    "Gång-asymmetri": "Walking asymmetry",
+    "Gånghastighet": "Walking speed",
+    "Gång/Löpning": "Walking/Running",
+    "Gångstabilitet": "Walking steadiness",
+    "Genomsnittlig puls": "Average heart rate",
+    "Graviditet": "Pregnancy",
+    "Hälso-hörsel": "Hearing health",
+    "Handledstemperatur": "Wrist temperature",
+    "Handledstemp (sömn)": "Wrist temp (sleep)",
+    "Handtvätt (antal)": "Handwashing (count)",
+    "Hjärtrytm-störning": "Heart rhythm disturbance",
+    "Höftmått": "Hip circumference",
+    "Höga pulshändelser": "High heart rate events",
+    "Hörlursexponering": "Headphone exposure",
+    "Hörlursljud": "Headphone audio",
+    "HRV": "HRV",
+    "HRV (RMSSD)": "HRV (RMSSD)",
+    "Inhalator-användning": "Inhaler usage",
+    "Inomhusgång": "Indoor walk",
+    "Insulin": "Insulin",
+    "Insulin-känslighet": "Insulin sensitivity",
+    "Järn": "Iron",
+    "Jod": "Iodine",
+    "Kadens": "Cadence",
+    "Kalcium": "Calcium",
+    "Kalium": "Potassium",
+    "Kalorier intag": "Calories intake",
+    "Kalorimål": "Calorie goal",
+    "Kardio-fitness": "Cardio fitness",
+    "Klorid": "Chloride",
+    "Koffein": "Caffeine",
+    "Kolesterol": "Cholesterol",
+    "Kolhydrater": "Carbohydrates",
+    "Koppar": "Copper",
+    "Krom": "Chromium",
+    "Kroppsfett": "Body fat",
+    "Kroppstemperatur": "Body temperature",
+    "Låga pulshändelser": "Low heart rate events",
+    "Längd": "Height",
+    "Löpband": "Treadmill",
+    "Löpeffekt": "Running power",
+    "Löphastighet": "Running speed",
+    "Lufttryck": "Air pressure",
+    "Magnesium": "Magnesium",
+    "Mangan": "Manganese",
+    "Markkontakt": "Ground contact",
+    "Mättat fett": "Saturated fat",
+    "Max puls": "Max heart rate",
+    "Medicin-påminnelse": "Medication reminder",
+    "Menstruationscykel": "Menstrual cycle",
+    "Menstruationsflöde": "Menstrual flow",
+    "Midjemått": "Waist circumference",
+    "Mindfulness (minuter)": "Mindfulness (minutes)",
+    "Min puls": "Min heart rate",
+    "Molybden": "Molybdenum",
+    "Muskelmassa": "Muscle mass",
+    "Natrium": "Sodium",
+    "Niacin": "Niacin",
+    "Omgivningsljud": "Ambient noise",
+    "Omgivningstemperatur": "Ambient temperature",
+    "Pantotensyra": "Pantothenic acid",
+    "Peak Flow": "Peak Flow",
+    "Protein": "Protein",
+    "Puls": "Heart rate",
+    "Puls-återhämtning": "Heart rate recovery",
+    "Puls (gång)": "Heart rate (walk)",
+    "Push-antal": "Push count",
+    "Riboflavin (B2)": "Riboflavin (B2)",
+    "Rörelsestid": "Movement time",
+    "Rullstol": "Wheelchair",
+    "Selen": "Selenium",
+    "Sexuell aktivitet": "Sexual activity",
+    "Simning": "Swimming",
+    "Simtag": "Swim stroke",
+    "Skidsport": "Snow sports",
+    "Socker": "Sugar",
+    "Sömn (Djup)": "Sleep (Deep)",
+    "Sömn-effektivitet": "Sleep efficiency",
+    "Sömn (Kärna/Lätt)": "Sleep (Core/Light)",
+    "Sömn (REM)": "Sleep (REM)",
+    "Sömn-schema": "Sleep schedule",
+    "Sömn (Total)": "Sleep (Total)",
+    "Stämning": "Mood",
+    "Stå-tid": "Stand time",
+    "Steg": "Steps",
+    "Steglängd": "Step length",
+    "Stegmål": "Step goal",
+    "Stress-nivå": "Stress level",
+    "Stridlängd": "Stroll distance",
+    "Syremättnad": "Oxygen saturation",
+    "Syremättnad (trend)": "Oxygen saturation (trend)",
+    "Tandborstning": "Teeth brushing",
+    "Tiamin (B1)": "Thiamin (B1)",
+    "Tid i dagsljus": "Time in daylight",
+    "Tid inom mål": "Time in range",
+    "Tid i sängen": "Time in bed",
+    "Träning (kcal idag)": "Workout (kcal today)",
+    "Träning (meter idag)": "Workout (meters today)",
+    "Träningspass (antal idag)": "Workouts (count today)",
+    "Tränings-serie": "Workout streak",
+    "Träningstid": "Workout time",
+    "Träningstid (min idag)": "Workout time (min today)",
+    "Trappnedgång": "Flights descended",
+    "Trappor": "Flights of stairs",
+    "Trappuppgång": "Flights climbed",
+    "UV-exponering": "UV exposure",
+    "Vaken i sängen": "Awake in bed",
+    "Vatten": "Water",
+    "Veckovis träning (min)": "Weekly exercise (min)",
+    "Vertikal ratio": "Vertical ratio",
+    "Vertikal rörelse": "Vertical movement",
+    "Vikt": "Weight",
+    "Viktkurva": "Weight trend",
+    "Vilopuls": "Resting heart rate",
+    "Vitamin B12": "Vitamin B12",
+    "Vitamin B6": "Vitamin B6",
+    "Vitamin C": "Vitamin C",
+    "Vitamin D": "Vitamin D",
+    "Vitamin E": "Vitamin E",
+    "Vitamin K": "Vitamin K",
+    "VO2 Max": "VO2 Max",
+    "Zink": "Zinc"
+]
 
 // MARK: - Themes
 
@@ -887,7 +1113,7 @@ private struct ModernHeroCard: View {
                         .font(.system(.largeTitle, design: .rounded, weight: .bold))
                         .foregroundStyle(.white)
 
-                    Text("Synkar Apple Health till Home Assistant")
+                    Text(L.t("Synkar Apple Health till Home Assistant", "Syncs Apple Health to Home Assistant"))
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.82))
                 }
@@ -904,14 +1130,14 @@ private struct ModernHeroCard: View {
 
             HStack(spacing: 10) {
                 ModernStatusPill(
-                    title: isAuthorized ? "HealthKit" : "Behörighet",
-                    value: isAuthorized ? "OK" : "Saknas",
+                    title: isAuthorized ? "HealthKit" : L.t("Behörighet", "Permission"),
+                    value: isAuthorized ? "OK" : L.t("Saknas", "Missing"),
                     systemImage: isAuthorized ? "checkmark.seal.fill" : "exclamationmark.triangle.fill",
                     color: isAuthorized ? .green : .orange
                 )
 
                 ModernStatusPill(
-                    title: "Anslutning",
+                    title: L.t("Anslutning", "Connection"),
                     value: connectionStatus,
                     systemImage: "network",
                     color: connectionStatus.localizedCaseInsensitiveContains("ok") ? .green : .blue
@@ -924,7 +1150,7 @@ private struct ModernHeroCard: View {
                         .font(.system(.title2, design: .rounded, weight: .bold))
                         .foregroundStyle(.white)
 
-                    Text("senast exporterade")
+                    Text(L.t("senast exporterade", "exported last time"))
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.72))
                 }
@@ -937,11 +1163,11 @@ private struct ModernHeroCard: View {
                             .font(.system(.subheadline, design: .rounded, weight: .semibold))
                             .foregroundStyle(.white)
 
-                        Text("senaste export")
+                        Text(L.t("senaste export", "last export"))
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.72))
                     } else {
-                        Text(isExporting ? "Aktiv" : "Ej körd")
+                        Text(isExporting ? L.t("Aktiv", "Active") : L.t("Ej körd", "Not run"))
                             .font(.system(.subheadline, design: .rounded, weight: .semibold))
                             .foregroundStyle(.white)
 
@@ -1052,6 +1278,7 @@ struct ContentView: View {
     @AppStorage(AppStorageKey.autoExport.rawValue) private var autoExport: Bool = false
     @AppStorage(AppStorageKey.enabledMetrics.rawValue) private var enabledMetricsData: Data = Data()
     @AppStorage(AppStorageKey.showLastValues.rawValue) private var showLastValues: Bool = true
+    @AppStorage(AppStorageKey.appLanguage.rawValue) private var appLanguage: String = "sv"
     
     // MARK: - State
     @StateObject private var healthManager = HealthManager.shared
@@ -1066,7 +1293,8 @@ struct ContentView: View {
 
     private var localWarnings: [String] {
         enabledMetrics.intersection(availableMetricNames).isEmpty
-            ? ["Inga datapunkter valda – välj minst en under Gemensamma Inställningar"]
+            ? [L.t("Inga datapunkter valda – välj minst en under Gemensamma Inställningar",
+                   "No data points selected – pick at least one under Common Settings")]
             : []
     }
 
@@ -1175,9 +1403,9 @@ struct ContentView: View {
     private var healthKitStatusSection: some View {
         Section {
             HStack {
-                Text("Behörighetsstatus")
+                Text(L.t("Behörighetsstatus", "Authorization"))
                 Spacer()
-                Text(healthManager.isAuthorized ? "Beviljad" : "Ej beviljad")
+                Text(healthManager.isAuthorized ? L.t("Beviljad", "Granted") : L.t("Ej beviljad", "Not granted"))
                     .font(.caption.bold())
                     .foregroundColor(.white)
                     .padding(.horizontal, 10)
@@ -1190,7 +1418,7 @@ struct ContentView: View {
                 Button(action: {
                     healthManager.requestAuthorization()
                 }) {
-                    Label("Be om behörighet", systemImage: "hand.tap.fill")
+                    Label(L.t("Be om behörighet", "Request access"), systemImage: "hand.tap.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -1222,7 +1450,7 @@ struct ContentView: View {
                 SecureField("Token", text: $haToken)
             }
         } header: {
-            Label("Server 1 (Primär)", systemImage: "server.rack")
+            Label(L.t("Server 1 (Primär)", "Server 1 (Primary)"), systemImage: "server.rack")
                 .foregroundStyle(themeManager.theme.palette.accent)
         }
         .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
@@ -1244,7 +1472,7 @@ struct ContentView: View {
                 SecureField("Token", text: $haToken2)
             }
         } header: {
-            Label("Server 2 (Valfri)", systemImage: "server.rack")
+            Label(L.t("Server 2 (Valfri)", "Server 2 (Optional)"), systemImage: "server.rack")
                 .foregroundStyle(themeManager.theme.palette.accent)
         }
         .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
@@ -1266,7 +1494,7 @@ struct ContentView: View {
                     Image(systemName: "clock.arrow.circlepath")
                         .foregroundColor(.secondary)
                         .frame(width: 20)
-                    Text("Sökperiod: \(lookbackDays) dagar")
+                    Text(L.t("Sökperiod: \(lookbackDays) dagar", "Lookback: \(lookbackDays) days"))
                 }
             }
             
@@ -1280,7 +1508,7 @@ struct ContentView: View {
                     Image(systemName: "checklist")
                         .foregroundColor(.secondary)
                         .frame(width: 20)
-                    Text("Välj datapunkter")
+                    Text(L.t("Välj datapunkter", "Choose data points"))
                     Spacer()
                     Text("\(enabledMetrics.intersection(availableMetricNames).count)/\(availableMetricNames.count)")
                         .foregroundColor(.secondary)
@@ -1293,12 +1521,12 @@ struct ContentView: View {
             }
 
             if allHealthTypes.count > availableMetricNames.count {
-                Text("\(allHealthTypes.count - availableMetricNames.count) datapunkter saknar läsbar källa i HealthKit och kan inte aktiveras.")
+                Text(L.t("\(allHealthTypes.count - availableMetricNames.count) datapunkter saknar läsbar källa i HealthKit och kan inte aktiveras.", "\(allHealthTypes.count - availableMetricNames.count) data points have no readable source in HealthKit and cannot be enabled."))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
         } header: {
-            Label("Gemensamma Inställningar", systemImage: "gearshape.fill")
+            Label(L.t("Gemensamma Inställningar", "Common Settings"), systemImage: "gearshape.fill")
                 .foregroundStyle(themeManager.theme.palette.accent)
         }
         .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
@@ -1307,7 +1535,7 @@ struct ContentView: View {
     private var automationSection: some View {
         Section {
             Toggle(isOn: $autoExport) {
-                Label("Auto-export (Bakgrund)", systemImage: "arrow.triangle.2.circlepath")
+                Label(L.t("Auto-export (Bakgrund)", "Auto-export (Background)"), systemImage: "arrow.triangle.2.circlepath")
             }
             .onChange(of: autoExport) { _, newValue in
                 syncSettings()
@@ -1320,12 +1548,12 @@ struct ContentView: View {
                 }
             }
             
-            Text("Använder Background Delivery. Uppdateras automatiskt när ny data finns.")
+            Text(L.t("Använder Background Delivery. Uppdateras automatiskt när ny data finns.", "Uses Background Delivery. Updates automatically when new data is available."))
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .padding(.top, 2)
         } header: {
-            Label("Automation", systemImage: "bolt.fill")
+            Label(L.t("Automation", "Automation"), systemImage: "bolt.fill")
                 .foregroundStyle(themeManager.theme.palette.accent)
         }
         .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
@@ -1333,6 +1561,15 @@ struct ContentView: View {
 
     private var appearanceSection: some View {
         Section {
+            Picker(selection: $appLanguage) {
+                Text("Svenska").tag("sv")
+                Text("English").tag("en")
+            } label: {
+                Label(L.t("Språk", "Language"), systemImage: "globe")
+            }
+            .pickerStyle(.segmented)
+            .padding(.vertical, 2)
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 16) {
                     ForEach(AppTheme.allCases) { theme in
@@ -1347,13 +1584,13 @@ struct ContentView: View {
             .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
 
             Toggle(isOn: $showLastValues) {
-                Label("Visa senaste exporterade värden", systemImage: "list.number")
+                Label(L.t("Visa senaste exporterade värden", "Show recent exported values"), systemImage: "list.number")
             }
         } header: {
-            Label("Utseende", systemImage: "paintpalette.fill")
+            Label(L.t("Utseende", "Appearance"), systemImage: "paintpalette.fill")
                 .foregroundStyle(themeManager.theme.palette.accent)
         } footer: {
-            Text("Temat sparas och slår igenom direkt i hela appen.")
+            Text(L.t("Temat sparas och slår igenom direkt i hela appen.", "The theme is saved and applies instantly throughout the app."))
         }
         .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
     }
@@ -1361,15 +1598,15 @@ struct ContentView: View {
     private func exportStatusSection(lastExport: Date) -> some View {
         Section {
             HStack {
-                Text("Senaste export")
+                Text(L.t("Senaste export", "Last export"))
                 Spacer()
                 Text(lastExport, style: .relative)
                     .foregroundColor(.secondary)
             }
             HStack {
-                Text("Status")
+                Text(L.t("Status", "Status"))
                 Spacer()
-                Label(healthManager.lastExportSuccess ? "Slutförd" : "Misslyckades",
+                Label(healthManager.lastExportSuccess ? L.t("Slutförd", "Completed") : L.t("Misslyckades", "Failed"),
                       systemImage: healthManager.lastExportSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .font(.caption.bold())
                     .foregroundColor(healthManager.lastExportSuccess ? .green : .red)
@@ -1379,14 +1616,14 @@ struct ContentView: View {
                     .clipShape(Capsule())
             }
             HStack {
-                Text("Exporterade värden")
+                Text(L.t("Exporterade värden", "Exported values"))
                 Spacer()
                 Text("\(healthManager.exportedMetricsCount)")
                     .font(.system(.body, design: .monospaced))
                     .foregroundColor(.secondary)
             }
         } header: {
-            Label("Export-status", systemImage: "chart.bar.doc.horizontal")
+            Label(L.t("Export-status", "Export status"), systemImage: "chart.bar.doc.horizontal")
                 .foregroundStyle(themeManager.theme.palette.accent)
         }
         .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
@@ -1408,12 +1645,12 @@ struct ContentView: View {
             }
 
             if values.count > 15 {
-                Text("+ \(values.count - 15) värden till")
+                Text(L.t("+ \(values.count - 15) värden till", "+ \(values.count - 15) more values"))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
         } header: {
-            Label("Senaste Exporterade Värden (\(values.count))", systemImage: "list.number")
+            Label(L.t("Senaste Exporterade Värden (\(values.count))", "Recent Exported Values (\(values.count))"), systemImage: "list.number")
                 .foregroundStyle(themeManager.theme.palette.accent)
         }
         .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
@@ -1425,14 +1662,14 @@ struct ContentView: View {
                 syncSettings()
                 healthManager.testConnection()
             }) {
-                Label("Testa anslutningar", systemImage: "network")
+                Label(L.t("Testa anslutningar", "Test connections"), systemImage: "network")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
             .disabled(healthManager.isExporting)
             
             HStack {
-                Text("Anslutning:")
+                Text(L.t("Anslutning:", "Connection:"))
                 Spacer()
                 Text(healthManager.connectionStatus)
                     .font(.caption.bold())
@@ -1448,7 +1685,7 @@ struct ContentView: View {
                 if healthManager.isExporting {
                     VStack(spacing: 10) {
                         HStack {
-                            Label("Exporterar", systemImage: "arrow.up.heart.fill")
+                            Label(L.t("Exporterar", "Exporting"), systemImage: "arrow.up.heart.fill")
                                 .font(.headline)
 
                             Spacer()
@@ -1471,7 +1708,7 @@ struct ContentView: View {
                     }
                     .padding(.vertical, 6)
                 } else {
-                    Label("Kör export nu", systemImage: "paperplane.fill")
+                    Label(L.t("Kör export nu", "Run export now"), systemImage: "paperplane.fill")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 4)
@@ -1487,7 +1724,7 @@ struct ContentView: View {
             .padding(.vertical, 4)
             
         } header: {
-            Label("Manuell Körning", systemImage: "play.circle.fill")
+            Label(L.t("Manuell Körning", "Manual Run"), systemImage: "play.circle.fill")
                 .foregroundStyle(themeManager.theme.palette.accent)
         }
         .listRowBackground(ThemeRowBackground(palette: themeManager.theme.palette))
@@ -1495,16 +1732,16 @@ struct ContentView: View {
     
     private var logsSection: some View {
         Section {
-            Picker("Filter", selection: $logFilter) {
+            Picker(L.t("Filter", "Filter"), selection: $logFilter) {
                 ForEach(LogFilter.allCases, id: \.self) { filter in
-                    Text(filter.rawValue).tag(filter)
+                    Text(filter.displayName).tag(filter)
                 }
             }
             .pickerStyle(.segmented)
             .padding(.bottom, 4)
             
             if filteredLogs.isEmpty {
-                Text("Inga loggar")
+                Text(L.t("Inga loggar", "No logs"))
                     .foregroundColor(.secondary)
                     .font(.caption)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -1531,7 +1768,7 @@ struct ContentView: View {
             }
         } header: {
             HStack {
-                Label("Logg (\(filteredLogs.count))", systemImage: "terminal.fill")
+                Label(L.t("Logg (\(filteredLogs.count))", "Log (\(filteredLogs.count))"), systemImage: "terminal.fill")
                     .foregroundStyle(themeManager.theme.palette.accent)
                 Spacer()
                 Menu {
@@ -1539,12 +1776,12 @@ struct ContentView: View {
                         let allLogs = healthManager.logs.map { $0.fullString }.joined(separator: "\n")
                         UIPasteboard.general.string = allLogs
                     }) {
-                        Label("Kopiera alla", systemImage: "doc.on.doc")
+                        Label(L.t("Kopiera alla", "Copy all"), systemImage: "doc.on.doc")
                     }
                     Button(role: .destructive, action: {
                         healthManager.clearLogs()
                     }) {
-                        Label("Rensa", systemImage: "trash")
+                        Label(L.t("Rensa", "Clear"), systemImage: "trash")
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle.fill")
@@ -1595,6 +1832,7 @@ struct MetricsSelectionView: View {
     @State private var searchText = ""
     @State private var localEnabledMetrics: Set<String>
     @ObservedObject private var themeManager = ThemeManager.shared
+    @AppStorage(AppStorageKey.appLanguage.rawValue) private var appLanguage: String = "sv"
     @Environment(\.dismiss) private var dismiss
     
     init(enabledMetrics: Set<String>, onUpdate: @escaping (Set<String>) -> Void) {
@@ -1607,7 +1845,7 @@ struct MetricsSelectionView: View {
         // MARK: - MODIFIED
         List {
             if visibleMetricCount == 0 {
-                Text("Inga träffar på ”\(searchText)”")
+                Text(L.t("Inga träffar på ”\(searchText)”", "No matches for “\(searchText)”"))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -1632,8 +1870,8 @@ struct MetricsSelectionView: View {
             themeManager.theme.palette.backgroundGradient
                 .ignoresSafeArea()
         }
-        .searchable(text: $searchText, prompt: "Sök datapunkter")
-        .navigationTitle("Välj datapunkter")
+        .searchable(text: $searchText, prompt: L.t("Sök datapunkter", "Search data points"))
+        .navigationTitle(L.t("Välj datapunkter", "Choose data points"))
         .navigationBarTitleDisplayMode(.inline)
         .tint(themeManager.theme.palette.accent)
         .preferredColorScheme(themeManager.theme.palette.colorScheme)
@@ -1644,20 +1882,20 @@ struct MetricsSelectionView: View {
                         localEnabledMetrics = Set(allHealthTypes.filter { $0.isAvailable }.map { $0.name })
                         onUpdate(localEnabledMetrics)
                     }) {
-                        Label("Markera alla läsbara", systemImage: "checkmark.square.fill")
+                        Label(L.t("Markera alla läsbara", "Select all readable"), systemImage: "checkmark.square.fill")
                     }
                     Button(action: {
                         localEnabledMetrics = []
                         onUpdate(localEnabledMetrics)
                     }) {
-                        Label("Avmarkera alla", systemImage: "square")
+                        Label(L.t("Avmarkera alla", "Deselect all"), systemImage: "square")
                     }
                 } label: {
                     Image(systemName: "checklist")
                 }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Klar") {
+                Button(L.t("Klar", "Done")) {
                     dismiss()
                 }
                 .font(.body.bold())
@@ -1670,7 +1908,7 @@ struct MetricsSelectionView: View {
         let enabledCount = available.filter { localEnabledMetrics.contains($0.name) }.count
 
         return HStack {
-            Label(category.rawValue, systemImage: category.icon)
+            Label(category.localizedName, systemImage: category.icon)
                 .font(.subheadline.bold())
                 .foregroundColor(.primary)
             Spacer()
@@ -1680,7 +1918,7 @@ struct MetricsSelectionView: View {
             Button(action: {
                 toggleCategory(category)
             }) {
-                Text(categoryEnabled(category) ? "Av" : "På")
+                Text(categoryEnabled(category) ? L.t("Av", "Off") : L.t("På", "On"))
                     .font(.caption.bold())
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
@@ -1709,7 +1947,7 @@ struct MetricsSelectionView: View {
                 }
             )) {
                 ModernMetricRow(
-                    title: config.displayName,
+                    title: config.localizedDisplayName,
                     subtitle: config.name,
                     isEnabled: localEnabledMetrics.contains(config.name),
                     accent: themeManager.theme.palette.accent
@@ -1718,10 +1956,10 @@ struct MetricsSelectionView: View {
             .tint(themeManager.theme.palette.accent)
         } else {
             ModernMetricRow(
-                title: config.displayName,
+                title: config.localizedDisplayName,
                 subtitle: config.name,
                 isEnabled: false,
-                badge: "Saknar källa"
+                badge: L.t("Saknar källa", "No source")
             )
             .opacity(0.5)
         }
@@ -1741,6 +1979,7 @@ struct MetricsSelectionView: View {
     
     private func matchesSearch(_ config: HealthDataConfig) -> Bool {
         searchText.isEmpty
+        || config.localizedDisplayName.localizedCaseInsensitiveContains(searchText)
         || config.displayName.localizedCaseInsensitiveContains(searchText)
         || config.name.localizedCaseInsensitiveContains(searchText)
     }
@@ -1782,7 +2021,7 @@ final class HealthManager: ObservableObject {
     // MARK: - UI State
     @Published private(set) var isAuthorized = false
     @Published private(set) var isExporting = false
-    @Published private(set) var connectionStatus: String = "Ej testad"
+    @Published private(set) var connectionStatus: String = L.t("Ej testad", "Not tested")
     @Published private(set) var connectionColor: Color = .gray
     @Published private(set) var logs: [LogMessage] = []
     
@@ -1852,15 +2091,15 @@ final class HealthManager: ObservableObject {
         var warnings: [String] = []
         
         if servers.isEmpty {
-            warnings.append("Inga servrar konfigurerade")
+            warnings.append(L.t("Inga servrar konfigurerade", "No servers configured"))
         }
         
         if !isAuthorized {
-            warnings.append("HealthKit-behörighet saknas")
+            warnings.append(L.t("HealthKit-behörighet saknas", "HealthKit authorization missing"))
         }
         
         if entityPrefix.isEmpty {
-            warnings.append("Entity-prefix är tomt")
+            warnings.append(L.t("Entity-prefix är tomt", "Entity prefix is empty"))
         }
         
         return warnings
@@ -1922,7 +2161,7 @@ final class HealthManager: ObservableObject {
         let typesToRead = buildReadTypes()
         
         guard !typesToRead.isEmpty else {
-            log("Inga typer att läsa", isError: true)
+            log(L.t("Inga typer att läsa", "No types to read"), isError: true)
             return
         }
         
@@ -1931,7 +2170,7 @@ final class HealthManager: ObservableObject {
                 self?.isAuthorized = success
                 
                 if let error = error {
-                    self?.log("Behörighetsfel: \(error.localizedDescription)", isError: true)
+                    self?.log(L.t("Behörighetsfel: \(error.localizedDescription)", "Authorization error: \(error.localizedDescription)"), isError: true)
                 }
                 
                 // Observer-queries måste återskapas vid varje appstart (de överlever inte
@@ -1974,7 +2213,7 @@ final class HealthManager: ObservableObject {
     // MARK: - Background Delivery
     func enableBackgroundDelivery() {
         guard isAuthorized else { return }
-        log("🔔 Aktiverar bakgrundsleverans...")
+        log(L.t("🔔 Aktiverar bakgrundsleverans...", "🔔 Enabling background delivery..."))
         
         backgroundHandler.isAuthorized = true
         
@@ -1988,9 +2227,9 @@ final class HealthManager: ObservableObject {
             healthStore.enableBackgroundDelivery(for: type, frequency: .hourly) { [weak self] success, error in
                 Task { @MainActor [weak self] in
                     if success {
-                        self?.log("✅ Bakgrund aktiverad för \(id.rawValue)")
+                        self?.log(L.t("✅ Bakgrund aktiverad för \(id.rawValue)", "✅ Background enabled for \(id.rawValue)"))
                     } else if let error = error {
-                        self?.log("❌ Bakgrundfel för \(id.rawValue): \(error.localizedDescription)", isError: true)
+                        self?.log(L.t("❌ Bakgrundfel för \(id.rawValue): \(error.localizedDescription)", "❌ Background error for \(id.rawValue): \(error.localizedDescription)"), isError: true)
                     }
                 }
             }
@@ -2030,7 +2269,7 @@ final class HealthManager: ObservableObject {
         healthStore.disableAllBackgroundDelivery { [weak self] success, _ in
             Task { @MainActor [weak self] in
                 if success {
-                    self?.log("🔕 Bakgrundsleverans avstängd.")
+                    self?.log(L.t("🔕 Bakgrundsleverans avstängd.", "🔕 Background delivery disabled."))
                 }
             }
         }
@@ -2052,7 +2291,7 @@ final class HealthManager: ObservableObject {
         }
         
         guard !servers.isEmpty else {
-            log("❌ Bakgrundsexport: inga servrar konfigurerade", isError: true)
+            log(L.t("❌ Bakgrundsexport: inga servrar konfigurerade", "❌ Background export: no servers configured"), isError: true)
             return false
         }
         
@@ -2096,12 +2335,12 @@ final class HealthManager: ObservableObject {
     // MARK: - Connection Test
     func testConnection() {
         guard !servers.isEmpty else {
-            setConnectionStatus("Inga servrar", color: .red)
+            setConnectionStatus(L.t("Inga servrar", "No servers"), color: .red)
             log("❌ Inga servrar konfigurerade", isError: true)
             return
         }
         
-        setConnectionStatus("Testar...", color: .orange)
+        setConnectionStatus(L.t("Testar...", "Testing..."), color: .orange)
         
         // Capture current servers for closure
         let currentServers = servers
@@ -2112,7 +2351,7 @@ final class HealthManager: ObservableObject {
             for server in currentServers {
                 guard let url = URL(string: "\(server.cleanURL)/api/") else {
                     hasFailure = true
-                    log("❌ \(server.name): Ogiltig URL", isError: true)
+                    log(L.t("❌ \(server.name): Ogiltig URL", "❌ \(server.name): Invalid URL"), isError: true)
                     continue
                 }
                 
@@ -2127,7 +2366,7 @@ final class HealthManager: ObservableObject {
                     let (_, response) = try await URLSession.shared.data(for: request)
                     
                     if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                        log("✅ \(serverName): Anslutning OK!")
+                        log(L.t("✅ \(serverName): Anslutning OK!", "✅ \(serverName): Connection OK!"))
                     } else {
                         hasFailure = true
                         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
@@ -2139,20 +2378,20 @@ final class HealthManager: ObservableObject {
                 }
             }
             
-            setConnectionStatus(hasFailure ? "Fel" : "Alla OK", color: hasFailure ? .red : .green)
+            setConnectionStatus(hasFailure ? L.t("Fel", "Error") : L.t("Alla OK", "All OK"), color: hasFailure ? .red : .green)
         }
     }
     
     // MARK: - Export Data
     func exportData(isBackground: Bool = false, enabledMetrics: Set<String>) async {
         guard !servers.isEmpty else {
-            if !isBackground { log("❌ Inga servrar konfigurerade!", isError: true) }
+            if !isBackground { log(L.t("❌ Inga servrar konfigurerade!", "❌ No servers configured!"), isError: true) }
             return
         }
 
         // Bara en export åt gången (knapp + BGTask + HealthKit-observer kan krocka).
         guard !isExportInFlight else {
-            if !isBackground { log("ℹ️ En export körs redan – hoppar över denna körning.") }
+            if !isBackground { log(L.t("ℹ️ En export körs redan – hoppar över denna körning.", "ℹ️ An export is already running – skipping this run.")) }
             return
         }
         isExportInFlight = true
@@ -2173,7 +2412,7 @@ final class HealthManager: ObservableObject {
             currentMetric = ""
             exportedMetricsCount = 0
             lastSentValues.removeAll()
-            log("🚀 Startar export till \(currentServers.count) server(ar)...")
+            log(L.t("🚀 Startar export till \(currentServers.count) server(ar)...", "🚀 Starting export to \(currentServers.count) server(s)..."))
         }
 
         // MARK: - MODIFIED
@@ -2189,7 +2428,7 @@ final class HealthManager: ObservableObject {
             Set(currentConfig.allHealthTypes.filter { $0.isAvailable }.map { $0.name })
         )
         if !isBackground && !skippedUnavailable.isEmpty {
-            log("ℹ️ \(skippedUnavailable.count) datapunkter saknar källa i HealthKit och hoppas över.")
+            log(L.t("ℹ️ \(skippedUnavailable.count) datapunkter saknar källa i HealthKit och hoppas över.", "ℹ️ \(skippedUnavailable.count) data points have no readable source in HealthKit and are skipped."))
         }
 
         let sleepKeys: Set<String> = [
@@ -2225,7 +2464,7 @@ final class HealthManager: ObservableObject {
         // 1. Standard HealthKit-data (dagssumma för kumulativa, senaste värdet för diskreta)
         for metricConfig in standardMetrics {
             if !isBackground {
-                updateProgress(step: completed, of: totalSteps, metric: metricConfig.displayName)
+                updateProgress(step: completed, of: totalSteps, metric: metricConfig.localizedDisplayName)
             }
 
             do {
@@ -2236,7 +2475,7 @@ final class HealthManager: ObservableObject {
                     lookbackDays: currentLookbackDays
                 ) else {
                     noDataMetrics += 1
-                    if !isBackground { log("➖ \(metricConfig.displayName): ingen data i HealthKit") }
+                    if !isBackground { log(L.t("➖ \(metricConfig.displayName): ingen data i HealthKit", "➖ \(metricConfig.localizedDisplayName): no data in HealthKit")) }
                     completed += 1
                     continue
                 }
@@ -2255,7 +2494,7 @@ final class HealthManager: ObservableObject {
             } catch {
                 failedMetrics += 1
                 if !isBackground {
-                    log("⚠️ \(metricConfig.displayName): \(error.localizedDescription)", isError: true)
+                    log(L.t("⚠️ \(metricConfig.displayName): \(error.localizedDescription)", "⚠️ \(metricConfig.localizedDisplayName): \(error.localizedDescription)"), isError: true)
                 }
             }
 
@@ -2264,7 +2503,7 @@ final class HealthManager: ObservableObject {
         
         // 2. Sömn (kategori-samples → uträkning per natt)
         if hasSleepEnabled {
-            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: "Sömn") }
+            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: L.t("Sömn", "Sleep")) }
             do {
                 let sleepData = try await fetchSleepBreakdown()
                 let hasData = sleepData.contains { $0.key != "sleep_efficiency" && $0.value > 0 }
@@ -2288,13 +2527,13 @@ final class HealthManager: ObservableObject {
                     }
                 } else {
                     noDataMetrics += 1
-                    if !isBackground { log("➖ Sömn: inga sömnsamples senaste 36 h") }
+                    if !isBackground { log(L.t("➖ Sömn: inga sömnsamples senaste 36 h", "➖ Sleep: no sleep samples in the last 36 h")) }
                 }
 
                 if anySuccess { sentMetrics += 1 } else if hasData { failedMetrics += 1 }
             } catch {
                 failedMetrics += 1
-                if !isBackground { log("⚠️ Sömn: \(error.localizedDescription)", isError: true) }
+                if !isBackground { log(L.t("⚠️ Sömn: \(error.localizedDescription)", "⚠️ Sleep: \(error.localizedDescription)"), isError: true) }
             }
         }
 
@@ -2324,7 +2563,7 @@ final class HealthManager: ObservableObject {
         
         // 4. Handwashing
         if hasHandwashingEnabled {
-            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: "Handtvätt") }
+            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: L.t("Handtvätt", "Handwashing")) }
             do {
                 let count = try await fetchHandwashingCountToday()
                 let okCount = await sendToAllServers(
@@ -2339,14 +2578,14 @@ final class HealthManager: ObservableObject {
                 if okCount > 0 { sentMetrics += 1 } else { failedMetrics += 1 }
             } catch {
                 failedMetrics += 1
-                if !isBackground { log("⚠️ Handtvätt: \(error.localizedDescription)", isError: true) }
+                if !isBackground { log(L.t("⚠️ Handtvätt: \(error.localizedDescription)", "⚠️ Handwashing: \(error.localizedDescription)"), isError: true) }
             }
         }
         completed += 1
         
         // 5. Workouts
         if hasWorkoutsEnabled {
-            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: "Träning (Workouts)") }
+            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: L.t("Träning (Workouts)", "Workouts")) }
             do {
                 let summary = try await fetchWorkoutSummaryToday()
                 
@@ -2372,7 +2611,7 @@ final class HealthManager: ObservableObject {
                 
                 if anySuccess { sentMetrics += 1 } else { failedMetrics += 1 }
                 if !isBackground {
-                    log("✅ Workouts: \(Int(summary.count)) pass, \(Int(summary.minutes)) min, \(Int(summary.kcal)) kcal, \(Int(summary.meters)) m")
+                    log(L.t("✅ Workouts: \(Int(summary.count)) pass, \(Int(summary.minutes)) min, \(Int(summary.kcal)) kcal, \(Int(summary.meters)) m", "✅ Workouts: \(Int(summary.count)) sessions, \(Int(summary.minutes)) min, \(Int(summary.kcal)) kcal, \(Int(summary.meters)) m"))
                 }
             } catch {
                 failedMetrics += 1
@@ -2383,7 +2622,7 @@ final class HealthManager: ObservableObject {
         
         // 6. Pulsstatistik (min/max/snitt idag)
         if hasHeartSummaryEnabled {
-            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: "Pulsstatistik") }
+            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: L.t("Pulsstatistik", "Heart rate stats")) }
             do {
                 let summary = try await fetchHeartRateSummaryToday()
 
@@ -2408,17 +2647,17 @@ final class HealthManager: ObservableObject {
                 }
 
                 if anySuccess { sentMetrics += 1 } else { failedMetrics += 1 }
-                if !isBackground { log("✅ Pulsstatistik exporterad") }
+                if !isBackground { log(L.t("✅ Pulsstatistik exporterad", "✅ Heart rate statistics exported")) }
             } catch {
                 failedMetrics += 1
-                if !isBackground { log("⚠️ Pulsstatistik: \(error.localizedDescription)", isError: true) }
+                if !isBackground { log(L.t("⚠️ Pulsstatistik: \(error.localizedDescription)", "⚠️ Heart rate stats: \(error.localizedDescription)"), isError: true) }
             }
         }
         completed += 1
 
         // 7. Puls-återhämtning (pulsfall 1–2 min efter dagens senaste pass)
         if hasRecoveryEnabled {
-            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: "Puls-återhämtning") }
+            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: L.t("Puls-återhämtning", "Heart rate recovery")) }
             do {
                 if let recovery = try await fetchHeartRateRecoveryToday() {
                     let okCount = await sendToAllServers(
@@ -2433,18 +2672,18 @@ final class HealthManager: ObservableObject {
                     if okCount > 0 { sentMetrics += 1 } else { failedMetrics += 1 }
                 } else {
                     noDataMetrics += 1
-                    if !isBackground { log("➖ Puls-återhämtning: inget avslutat pass (eller för lite pulldata) idag") }
+                    if !isBackground { log(L.t("➖ Puls-återhämtning: inget avslutat pass (eller för lite pulldata) idag", "➖ Heart rate recovery: no finished workout (or too little HR data) today")) }
                 }
             } catch {
                 failedMetrics += 1
-                if !isBackground { log("⚠️ Puls-återhämtning: \(error.localizedDescription)", isError: true) }
+                if !isBackground { log(L.t("⚠️ Puls-återhämtning: \(error.localizedDescription)", "⚠️ Heart rate recovery: \(error.localizedDescription)"), isError: true) }
             }
         }
         completed += 1
 
         // 8. Tränings-serie
         if hasStreakEnabled {
-            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: "Tränings-serie") }
+            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: L.t("Tränings-serie", "Workout streak")) }
             do {
                 let streak = try await fetchWorkoutStreak(maxDays: 90)
                 let okCount = await sendToAllServers(
@@ -2459,14 +2698,14 @@ final class HealthManager: ObservableObject {
                 if okCount > 0 { sentMetrics += 1 } else { failedMetrics += 1 }
             } catch {
                 failedMetrics += 1
-                if !isBackground { log("⚠️ Tränings-serie: \(error.localizedDescription)", isError: true) }
+                if !isBackground { log(L.t("⚠️ Tränings-serie: \(error.localizedDescription)", "⚠️ Workout streak: \(error.localizedDescription)"), isError: true) }
             }
         }
         completed += 1
 
         // 9. Veckovis träningstid (rullande 7 dagar)
         if hasWeeklyEnabled {
-            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: "Veckovis träning") }
+            if !isBackground { updateProgress(step: completed, of: totalSteps, metric: L.t("Veckovis träning", "Weekly exercise")) }
             do {
                 let minutes = try await fetchWeeklyExerciseMinutes()
                 let okCount = await sendToAllServers(
@@ -2481,7 +2720,7 @@ final class HealthManager: ObservableObject {
                 if okCount > 0 { sentMetrics += 1 } else { failedMetrics += 1 }
             } catch {
                 failedMetrics += 1
-                if !isBackground { log("⚠️ Veckovis träning: \(error.localizedDescription)", isError: true) }
+                if !isBackground { log(L.t("⚠️ Veckovis träning: \(error.localizedDescription)", "⚠️ Weekly exercise: \(error.localizedDescription)"), isError: true) }
             }
         }
         completed += 1
@@ -2498,7 +2737,7 @@ final class HealthManager: ObservableObject {
 
         if !isBackground {
             let seconds = Date().timeIntervalSince(startedAt)
-            log("🏁 Klart på \(String(format: "%.1f", seconds))s – \(sentMetrics) skickade, \(noDataMetrics) utan data, \(failedMetrics) misslyckade.")
+            log(L.t("🏁 Klart på \(String(format: "%.1f", seconds))s – \(sentMetrics) skickade, \(noDataMetrics) utan data, \(failedMetrics) misslyckade.", "🏁 Done in \(String(format: "%.1f", seconds))s – \(sentMetrics) sent, \(noDataMetrics) without data, \(failedMetrics) failed."))
         }
     }
 
@@ -2544,7 +2783,7 @@ final class HealthManager: ObservableObject {
 
                 if streak >= maxConsecutiveServerFailures {
                     disabledServers.insert(server.id)
-                    log("⛔️ \(server.name) hoppas över resten av körningen efter \(streak) fel i rad: \(error.localizedDescription)", isError: true)
+                    log(L.t("⛔️ \(server.name) hoppas över resten av körningen efter \(streak) fel i rad: \(error.localizedDescription)", "⛔️ \(server.name) skipped for the rest of the run after \(streak) consecutive errors: \(error.localizedDescription)"), isError: true)
                 }
             }
         }
